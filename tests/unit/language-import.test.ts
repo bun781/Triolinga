@@ -415,6 +415,10 @@ class InsertQuery {
     return this;
   }
 
+  onConflictDoNothing() {
+    return this;
+  }
+
   returning(projection?: unknown) {
     void projection;
     if (this.table === this.getFailOnInsertTable()) {

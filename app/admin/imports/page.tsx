@@ -398,41 +398,6 @@ export default function LessonImportsPage() {
 
       {mode === "builder" ? (
         <div className="lesson-builder">
-          <section className="card stack">
-            <div className="grid grid-3">
-              <label className="field">
-                <span>Title</span>
-                <input className="input" value={lesson.title} onChange={(event) => updateLessonField("title", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Language</span>
-                <input className="input" value={lesson.language} onChange={(event) => updateLessonField("language", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Base language</span>
-                <input className="input" value={lesson.baseLanguage} onChange={(event) => updateLessonField("baseLanguage", event.target.value)} />
-              </label>
-            </div>
-            <div className="grid grid-3">
-              <label className="field">
-                <span>Level</span>
-                <input className="input" value={lesson.level ?? ""} onChange={(event) => updateLessonField("level", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Tags</span>
-                <input className="input" value={(lesson.tags ?? []).join(", ")} onChange={(event) => updateLessonField("tags", splitTags(event.target.value))} />
-              </label>
-              <label className="field">
-                <span>Source</span>
-                <input className="input" value={lesson.source ?? ""} onChange={(event) => updateLessonField("source", event.target.value)} />
-              </label>
-            </div>
-            <label className="field">
-              <span>Description</span>
-              <input className="input" value={lesson.description ?? ""} onChange={(event) => updateLessonField("description", event.target.value)} />
-            </label>
-          </section>
-
           <section className="builder-layout">
             <div className="stack">
               <section className="card stack">
@@ -464,7 +429,10 @@ export default function LessonImportsPage() {
 
               <section className="card stack">
                 <div className="row">
-                  <h2>Sentence</h2>
+                  <div>
+                    <h2>Sentence {activeSentenceIndex + 1}</h2>
+                    {selection && <p className="muted">Selected: <strong>{selection.surface}</strong></p>}
+                  </div>
                   <button
                     className="icon-button"
                     type="button"
@@ -476,6 +444,24 @@ export default function LessonImportsPage() {
                     <Trash2 size={18} />
                   </button>
                 </div>
+                <div className="selectable-sentence" onMouseUp={captureSelection} onKeyUp={captureSelection}>
+                  {activeSentence.text ? (
+                    Array.from(activeSentence.text).map((char, index) => {
+                      const kind = getCharAnnotationKind(activeSentence, char, index);
+                      return (
+                        <span
+                          data-char-index={index}
+                          key={`${char}-${index}`}
+                          className={kind ? `annotated-${kind}` : undefined}
+                        >
+                          {char}
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <span className="sentence-placeholder">Type a sentence below…</span>
+                  )}
+                </div>
                 <label className="field">
                   <span>Text</span>
                   <textarea className="input sentence-input" value={activeSentence.text} onChange={(event) => updateSentence("text", event.target.value)} />
@@ -484,33 +470,53 @@ export default function LessonImportsPage() {
                   <span>Translation</span>
                   <input className="input" value={activeSentence.translation ?? ""} onChange={(event) => updateSentence("translation", event.target.value)} />
                 </label>
-                <div className="selectable-sentence" onMouseUp={captureSelection} onKeyUp={captureSelection}>
-                  {Array.from(activeSentence.text || "Type a sentence above.").map((char, index) => (
-                    <span
-                      data-char-index={activeSentence.text ? index : undefined}
-                      key={`${char}-${index}`}
-                      className={isCharAnnotated(activeSentence, char, index) ? "annotated-char" : undefined}
-                    >
-                      {char}
-                    </span>
-                  ))}
-                </div>
               </section>
             </div>
 
             <aside className="stack">
+              <section className="card meta-compact stack">
+                <h2>Lesson</h2>
+                <label className="field">
+                  <span>Title</span>
+                  <input className="input" value={lesson.title} onChange={(event) => updateLessonField("title", event.target.value)} />
+                </label>
+                <div className="meta-grid-2">
+                  <label className="field">
+                    <span>Language</span>
+                    <input className="input" value={lesson.language} onChange={(event) => updateLessonField("language", event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>Base</span>
+                    <input className="input" value={lesson.baseLanguage} onChange={(event) => updateLessonField("baseLanguage", event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>Level</span>
+                    <input className="input" value={lesson.level ?? ""} onChange={(event) => updateLessonField("level", event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>Source</span>
+                    <input className="input" value={lesson.source ?? ""} onChange={(event) => updateLessonField("source", event.target.value)} />
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Tags</span>
+                  <input className="input" value={(lesson.tags ?? []).join(", ")} onChange={(event) => updateLessonField("tags", splitTags(event.target.value))} />
+                </label>
+                <label className="field">
+                  <span>Description</span>
+                  <input className="input" value={lesson.description ?? ""} onChange={(event) => updateLessonField("description", event.target.value)} />
+                </label>
+              </section>
+
               <section className="card stack">
                 <div className="row">
-                  <div>
-                    <h2>Annotate</h2>
-                    <p className="muted">{selection ? `Selected: ${selection.surface}` : "Select text in the sentence preview."}</p>
-                  </div>
-                  <Highlighter size={20} />
+                  <h2>Annotate</h2>
+                  <Highlighter size={18} />
                 </div>
                 <div className="annotation-types">
                   {(["word", "grammar", "chunk"] as AnnotationKind[]).map((kind) => (
                     <button
-                      className={draft.kind === kind ? "active" : ""}
+                      className={`kind-${kind}${draft.kind === kind ? " active" : ""}`}
                       key={kind}
                       type="button"
                       onClick={() => setDraft((current) => ({
@@ -565,7 +571,7 @@ export default function LessonImportsPage() {
                   <span>Explanation</span>
                   <textarea className="input small-textarea" value={draft.explanation} onChange={(event) => setDraft({ ...draft, explanation: event.target.value })} />
                 </label>
-                <button className="button" type="button" onClick={addAnnotation}>
+                <button className={`button kind-${draft.kind}`} type="button" onClick={addAnnotation}>
                   <Check size={18} />
                   Add annotation
                 </button>
@@ -578,7 +584,7 @@ export default function LessonImportsPage() {
                     {activeAnnotations.map((annotation) => (
                       <div className="annotation-row" key={`${annotation.kind}-${annotation.index}-${annotation.label}`}>
                         <div>
-                          <span className="pill">{annotation.kind}</span>
+                          <span className={`pill pill-${annotation.kind}`}>{annotation.kind}</span>
                           <strong>{annotation.label}</strong>
                           {annotation.detail ? <p className="muted">{annotation.detail}</p> : null}
                         </div>
@@ -694,21 +700,21 @@ function getCharIndex(node: Node | null): number | null {
   return value === undefined ? null : Number(value);
 }
 
-function isCharAnnotated(sentence: LessonSentenceInput, char: string, index: number): boolean {
-  if (!sentence.text || char.trim() === "") return false;
+function getCharAnnotationKind(sentence: LessonSentenceInput, char: string, index: number): AnnotationKind | null {
+  if (!sentence.text || char.trim() === "") return null;
   const left = Array.from(sentence.text).slice(0, index).join("");
   const right = Array.from(sentence.text).slice(0, index + 1).join("");
-  const surfaces = [
-    ...(sentence.words ?? []).map((item) => item.surface),
-    ...(sentence.grammar ?? []).map((item) => item.surface).filter(Boolean),
-    ...(sentence.chunks ?? []).map((item) => item.surface)
-  ];
 
-  return surfaces.some((surface) => {
+  function overlaps(surface: string | undefined): boolean {
     if (!surface) return false;
     const start = sentence.text.indexOf(surface);
     if (start < 0) return false;
     const end = start + surface.length;
     return left.length >= start && right.length <= end;
-  });
+  }
+
+  if ((sentence.words ?? []).some((w) => overlaps(w.surface))) return "word";
+  if ((sentence.grammar ?? []).some((g) => overlaps(g.surface))) return "grammar";
+  if ((sentence.chunks ?? []).some((c) => overlaps(c.surface))) return "chunk";
+  return null;
 }

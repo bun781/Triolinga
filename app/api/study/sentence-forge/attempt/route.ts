@@ -3,12 +3,13 @@ import { NextResponse } from "next/server";
 import { drills, reviewStates, sentenceReviewAttempts } from "@/db/schema";
 import { scheduleSentenceReview } from "@/lib/language/srs";
 import type { SentenceGrade } from "@/lib/language/types";
-import { db } from "@/lib/server/db";
+import { getDb, db } from "@/lib/server/db";
 
 const grades = new Set<SentenceGrade>(["easy", "correct", "hard", "failed"]);
 
 export async function POST(request: Request) {
   try {
+    await getDb();
     const body = await request.json() as { reviewStateId?: string; drillId?: string; grade?: string; response?: string };
 
     if (!body.reviewStateId || !body.drillId || !grades.has(body.grade as SentenceGrade)) {

@@ -6,9 +6,10 @@ import {
   sentenceTokens,
   sentences
 } from "@/db/schema";
-import { db } from "@/lib/server/db";
+import { getDb, db } from "@/lib/server/db";
 
 export async function getNextSentenceForgeItem() {
+  await getDb();
   const [next] = await db
     .select({
       reviewStateId: reviewStates.id,

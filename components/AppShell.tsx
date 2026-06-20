@@ -1,15 +1,32 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const navLinks = [
+  { href: "/admin/imports", label: "Import" },
+  { href: "/study/sentence-forge", label: "Sentence Forge" },
+  { href: "/study/imported-content", label: "Imported Content" },
+  { href: "/review", label: "Review" }
+];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <strong>Habitz</strong>
+        <div className="sidebar-brand">Habitz</div>
         <nav aria-label="Primary navigation">
-          <Link href="/admin/imports">Import</Link>
-          <Link href="/study/sentence-forge">Sentence Forge</Link>
-          <Link href="/study/imported-content">Imported Content</Link>
-          <Link href="/review">Review</Link>
+          {navLinks.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={pathname === href || pathname.startsWith(href + "/") ? "nav-active" : ""}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
       </aside>
       <main className="main">{children}</main>

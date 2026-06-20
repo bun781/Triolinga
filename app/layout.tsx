@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Habitz",
-  description: "Lesson import, study, and Sentence Forge review."
+  description: "Language study — lesson builder, sentence forge, vocabulary review."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

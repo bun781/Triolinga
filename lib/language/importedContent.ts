@@ -8,7 +8,7 @@ import {
   sentenceVocabularyLinks,
   sentences
 } from "@/db/schema";
-import { db } from "@/lib/server/db";
+import { getDb, db } from "@/lib/server/db";
 
 export interface ImportedLessonSentence {
   id: string;
@@ -33,6 +33,7 @@ export interface ImportedLessonContent {
 }
 
 export async function getLatestImportedLessonContent(): Promise<ImportedLessonContent | null> {
+  await getDb();
   const [lesson] = await db
     .select({
       id: lessons.id,

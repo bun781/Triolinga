@@ -60,7 +60,7 @@ export function ImportPreview({ preview, importing, onApprove, onCancel }: Impor
             {sentence.words.length ? (
               <div className="inline-tags">
                 {sentence.words.map((word) => (
-                  <span className="token-chip static" key={`${word.surface}-${word.lemma ?? ""}`}>{word.surface}</span>
+                  <span className="token-chip static token-chip-word" key={`${word.surface}-${word.lemma ?? ""}`}>{word.surface}</span>
                 ))}
               </div>
             ) : null}
@@ -68,7 +68,7 @@ export function ImportPreview({ preview, importing, onApprove, onCancel }: Impor
             {sentence.grammar.length ? (
               <div className="inline-tags">
                 {sentence.grammar.map((grammar) => (
-                  <span className="token-chip static" key={`${grammar.pattern}-${grammar.surface ?? ""}`}>{grammar.surface ?? grammar.pattern}</span>
+                  <span className="token-chip static token-chip-grammar" key={`${grammar.pattern}-${grammar.surface ?? ""}`}>{grammar.surface ?? grammar.pattern}</span>
                 ))}
               </div>
             ) : null}
@@ -76,7 +76,7 @@ export function ImportPreview({ preview, importing, onApprove, onCancel }: Impor
             {sentence.chunks.length ? (
               <div className="inline-tags">
                 {sentence.chunks.map((chunk) => (
-                  <span className="token-chip static" key={`${chunk.surface}-${chunk.type ?? ""}`}>{chunk.surface}</span>
+                  <span className="token-chip static token-chip-chunk" key={`${chunk.surface}-${chunk.type ?? ""}`}>{chunk.surface}</span>
                 ))}
               </div>
             ) : null}

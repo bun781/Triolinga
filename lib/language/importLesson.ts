@@ -10,7 +10,7 @@ import {
   sentenceVocabularyLinks,
   sentences
 } from "@/db/schema";
-import { db } from "@/lib/server/db";
+import { getDb, db } from "@/lib/server/db";
 import { generateSentenceForgeDrills } from "@/lib/language/generateDrills";
 import { buildCanonicalKey, hashLessonSource, normalizeSentenceText } from "@/lib/language/normalize";
 import type {
@@ -72,6 +72,7 @@ export async function buildImportPreview(lesson: LessonImportInput): Promise<Les
 }
 
 export async function importApprovedLesson(lesson: LessonImportInput): Promise<LessonImportSummary> {
+  await getDb();
   const sourceHash = hashLessonSource(lesson);
   const [duplicateLesson] = await db
     .select({ id: lessons.id })
@@ -232,23 +233,25 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
       });
       linksCreated += sentenceLinksCreated;
 
-      const focusItemId = pickFocusItemId(lesson.language, sentence, itemIdByKey);
-      const drillsToInsert = generateSentenceForgeDrills(normalizeSentenceImport(sentence));
-      const insertedDrills = await tx.insert(drills).values(drillsToInsert.map((drill) => ({
-        sentenceId,
-        learningItemId: focusItemId,
-        type: drill.type,
-        prompt: drill.prompt,
-        answer: drill.answer,
-        payload: drill.payload
-      }))).returning({ id: drills.id });
+      if (!existingSentence) {
+        const focusItemId = pickFocusItemId(lesson.language, sentence, itemIdByKey);
+        const drillsToInsert = generateSentenceForgeDrills(normalizeSentenceImport(sentence));
+        const insertedDrills = await tx.insert(drills).values(drillsToInsert.map((drill) => ({
+          sentenceId,
+          learningItemId: focusItemId,
+          type: drill.type,
+          prompt: drill.prompt,
+          answer: drill.answer,
+          payload: drill.payload
+        }))).returning({ id: drills.id });
 
-      await tx.insert(reviewStates).values(insertedDrills.map((drill) => ({
-        drillId: drill.id,
-        reviewState: "new",
-        nextReviewAt: new Date(),
-        intervalDays: 0
-      })));
+        await tx.insert(reviewStates).values(insertedDrills.map((drill) => ({
+          drillId: drill.id,
+          reviewState: "new",
+          nextReviewAt: new Date(),
+          intervalDays: 0
+        })));
+      }
     }
 
     return {
@@ -268,6 +271,7 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
 }
 
 async function buildImportPlan(lesson: LessonImportInput): Promise<ImportPlan> {
+  await getDb();
   const sourceHash = hashLessonSource(lesson);
   const [duplicateImport] = await db
     .select({ id: lessons.id })
@@ -499,7 +503,7 @@ async function createSentenceItemLinks({
       sentenceId,
       vocabularyItemId: itemId,
       surfaceText: word.surface
-    }).returning({ id: sentenceVocabularyLinks.id });
+    }).onConflictDoNothing().returning({ id: sentenceVocabularyLinks.id });
     if (row) inserted += 1;
   }
 
@@ -513,7 +517,7 @@ async function createSentenceItemLinks({
       sentenceId,
       grammarItemId: itemId,
       surfaceText
-    }).returning({ id: sentenceGrammarLinks.id });
+    }).onConflictDoNothing().returning({ id: sentenceGrammarLinks.id });
     if (row) inserted += 1;
   }
 
@@ -526,7 +530,7 @@ async function createSentenceItemLinks({
       sentenceId,
       chunkItemId: itemId,
       surfaceText: chunk.surface
-    }).returning({ id: sentenceChunkLinks.id });
+    }).onConflictDoNothing().returning({ id: sentenceChunkLinks.id });
     if (row) inserted += 1;
   }
 

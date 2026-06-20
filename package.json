@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.3",
     "drizzle-orm": "^0.33.0",
     "lucide-react": "^0.468.0",
     "next": "^15.0.0",
