@@ -8,10 +8,15 @@ export async function POST(request: Request) {
     const parsed = parseLessonJson(source ?? "");
 
     if (!parsed.lesson) {
-      return NextResponse.json({ errors: parsed.errors, warnings: parsed.warnings }, { status: 400 });
+      return NextResponse.json({ errors: parsed.errors }, { status: 400 });
     }
 
     const result = await importApprovedLesson(parsed.lesson);
+
+    if (result.errors.length) {
+      return NextResponse.json({ result }, { status: 400 });
+    }
+
     return NextResponse.json({ result });
   } catch (error) {
     return NextResponse.json(

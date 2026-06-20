@@ -1,13 +1,22 @@
 import type { DrillBlueprint, LessonSentenceInput } from "@/lib/language/types";
 
 export function generateSentenceForgeDrills(sentence: LessonSentenceInput): DrillBlueprint[] {
-  const tokens = sentence.tokens?.map((token) => token.text).filter(Boolean) ?? splitSentence(sentence.text);
-  const focusAnswer = sentence.drills?.clozeAnswer ?? sentence.focus?.displayText ?? tokens.at(-1) ?? sentence.text;
+  const focusText = sentence.chunks?.[0]?.surface
+    ?? sentence.words?.[0]?.surface
+    ?? sentence.grammar?.[0]?.surface
+    ?? sentence.grammar?.[0]?.pattern
+    ?? sentence.text;
+  const answer = focusText && sentence.text.includes(focusText)
+    ? focusText
+    : sentence.text;
+  const tokens = sentence.words?.length
+    ? sentence.words.map((word) => word.surface).filter(Boolean)
+    : splitSentence(sentence.text);
 
   return [
     {
       type: "recall",
-      prompt: sentence.drills?.recallPrompt ?? `Translate into target language: ${sentence.translation}`,
+      prompt: sentence.translation ? `Translate into the target language: ${sentence.translation}` : "Translate into the target language.",
       answer: sentence.text,
       payload: {}
     },
@@ -19,20 +28,20 @@ export function generateSentenceForgeDrills(sentence: LessonSentenceInput): Dril
     },
     {
       type: "cloze",
-      prompt: sentence.drills?.clozePrompt ?? buildClozePrompt(sentence.text, focusAnswer),
-      answer: focusAnswer,
-      payload: { hidden: focusAnswer }
+      prompt: buildClozePrompt(sentence.text, answer),
+      answer,
+      payload: { hidden: answer }
     },
     {
       type: "transformation",
-      prompt: sentence.drills?.transformPrompt ?? "Change the sentence as prompted by your teacher.",
-      answer: sentence.drills?.transformAnswer ?? sentence.text,
+      prompt: "Change the sentence as prompted by your teacher.",
+      answer: sentence.text,
       payload: {}
     },
     {
       type: "original_sentence",
-      prompt: `Write one original sentence using ${sentence.focus?.displayText ?? "the focus item"}.`,
-      answer: sentence.focus?.displayText ?? sentence.text,
+      prompt: `Write one original sentence using ${focusText}.`,
+      answer: focusText,
       payload: { selfGraded: true }
     }
   ];

@@ -1,47 +1,49 @@
 import { z } from "zod";
 import type { ImportValidationResult } from "@/lib/language/types";
+import { normalizeCanonicalText } from "@/lib/language/normalize";
 
-const itemTypeSchema = z.enum(["word", "grammar", "chunk"]);
+const lessonWordSchema = z.object({
+  surface: z.string().trim().min(1),
+  lemma: z.string().trim().min(1).optional(),
+  meaning: z.string().trim().min(1).optional(),
+  role: z.string().trim().min(1).optional(),
+  explanation: z.string().trim().min(1).optional()
+}).strict();
 
-const focusSchema = z.object({
-  type: itemTypeSchema,
-  canonicalKey: z.string().trim().min(1),
-  displayText: z.string().trim().min(1),
-  meaning: z.string().trim().optional(),
-  explanation: z.string().trim().optional(),
-  commonMistakes: z.array(z.string().trim().min(1)).optional()
-});
+const lessonGrammarSchema = z.object({
+  pattern: z.string().trim().min(1),
+  surface: z.string().trim().min(1).optional(),
+  meaning: z.string().trim().min(1).optional(),
+  explanation: z.string().trim().min(1).optional()
+}).strict();
 
-const tokenSchema = z.object({
+const lessonChunkSchema = z.object({
+  surface: z.string().trim().min(1),
+  meaning: z.string().trim().min(1).optional(),
+  explanation: z.string().trim().min(1).optional(),
+  type: z.string().trim().min(1).optional(),
+  level: z.string().trim().min(1).optional(),
+  tags: z.array(z.string().trim().min(1)).optional()
+}).strict();
+
+const lessonSentenceSchema = z.object({
   text: z.string().trim().min(1),
-  type: itemTypeSchema.optional(),
-  canonicalKey: z.string().trim().min(1).optional(),
-  meaning: z.string().trim().optional(),
-  explanation: z.string().trim().optional(),
-  commonMistakes: z.array(z.string().trim().min(1)).optional()
-});
+  translation: z.string().trim().min(1).optional(),
+  words: z.array(lessonWordSchema).optional(),
+  grammar: z.array(lessonGrammarSchema).optional(),
+  chunks: z.array(lessonChunkSchema).optional()
+}).strict();
 
-const drillsSchema = z.object({
-  recallPrompt: z.string().trim().min(1).optional(),
-  clozePrompt: z.string().trim().min(1).optional(),
-  clozeAnswer: z.string().trim().min(1).optional(),
-  transformPrompt: z.string().trim().min(1).optional(),
-  transformAnswer: z.string().trim().min(1).optional()
-});
-
-export const lessonImportSchema = z.object({
-  targetLanguage: z.string().trim().min(1, "Missing targetLanguage."),
-  baseLanguage: z.string().trim().min(1, "Missing baseLanguage."),
+const lessonImportSchema = z.object({
+  language: z.string().trim().min(1),
+  baseLanguage: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  source: z.string().trim().optional(),
   level: z.string().trim().optional(),
-  title: z.string().trim().min(1, "Missing title."),
-  sentences: z.array(z.object({
-    text: z.string().trim().min(1, "Missing sentence."),
-    translation: z.string().trim().min(1, "Missing translation."),
-    focus: focusSchema.optional(),
-    tokens: z.array(tokenSchema).optional(),
-    drills: drillsSchema.optional()
-  })).min(1, "Missing sentence.")
-});
+  tags: z.array(z.string().trim().min(1)).optional(),
+  sentences: z.array(lessonSentenceSchema).min(1)
+}).strict();
 
 export function parseLessonJson(source: string): ImportValidationResult {
   let parsed: unknown;
@@ -49,35 +51,52 @@ export function parseLessonJson(source: string): ImportValidationResult {
   try {
     parsed = JSON.parse(source);
   } catch {
-    return { errors: ["Invalid JSON."], warnings: [] };
+    return { errors: ["Invalid JSON."] };
   }
 
   const result = lessonImportSchema.safeParse(parsed);
   if (!result.success) {
-    return {
-      errors: result.error.issues.map((issue) => issue.message),
-      warnings: []
-    };
+    return { errors: result.error.issues.map((issue) => issue.message) };
   }
 
-  const warnings = result.data.sentences.flatMap((sentence, sentenceIndex) => {
-    const sentenceWarnings = [];
-    if (!sentence.tokens?.length) {
-      sentenceWarnings.push({
-        code: "missing_tokens",
-        message: "Missing tokens.",
-        sentenceIndex
-      });
-    }
-    if (!sentence.drills) {
-      sentenceWarnings.push({
-        code: "missing_drills",
-        message: "Missing drills.",
-        sentenceIndex
-      });
-    }
-    return sentenceWarnings;
-  });
+  const errors: string[] = [];
+  const sentenceTexts = new Set<string>();
 
-  return { lesson: result.data, errors: [], warnings };
+  for (const [sentenceIndex, sentence] of result.data.sentences.entries()) {
+    const normalizedSentence = normalizeCanonicalText(sentence.text);
+    if (sentenceTexts.has(normalizedSentence)) {
+      errors.push(`Duplicate sentence text at sentence ${sentenceIndex + 1}.`);
+    } else {
+      sentenceTexts.add(normalizedSentence);
+    }
+
+    for (const word of sentence.words ?? []) {
+      if (!containsSurface(sentence.text, word.surface)) {
+        errors.push(`Sentence ${sentenceIndex + 1}: word surface "${word.surface}" does not appear in the sentence.`);
+      }
+    }
+
+    for (const grammar of sentence.grammar ?? []) {
+      if (grammar.surface && !containsSurface(sentence.text, grammar.surface)) {
+        errors.push(`Sentence ${sentenceIndex + 1}: grammar surface "${grammar.surface}" does not appear in the sentence.`);
+      }
+    }
+
+    for (const chunk of sentence.chunks ?? []) {
+      if (!containsSurface(sentence.text, chunk.surface)) {
+        errors.push(`Sentence ${sentenceIndex + 1}: chunk surface "${chunk.surface}" does not appear in the sentence.`);
+      }
+    }
+  }
+
+  if (errors.length) {
+    return { errors };
+  }
+
+  return { lesson: result.data, errors: [] };
 }
+
+function containsSurface(sentenceText: string, surface: string): boolean {
+  return normalizeCanonicalText(sentenceText).includes(normalizeCanonicalText(surface));
+}
+

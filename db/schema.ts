@@ -30,9 +30,12 @@ export const lessons = pgTable("lessons", {
   id: idColumn(),
   targetLanguage: text("target_language").notNull(),
   baseLanguage: text("base_language").notNull(),
+  description: text("description"),
+  source: text("source"),
   level: text("level"),
   title: text("title").notNull(),
   sourceHash: text("source_hash").notNull(),
+  tags: jsonb("tags").$type<string[]>().default([]).notNull(),
   importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
   ...timestamps()
 }, (table) => ({
@@ -70,6 +73,53 @@ export const sentences = pgTable("sentences", {
 }, (table) => ({
   duplicateIdx: uniqueIndex("sentences_language_normalized_idx").on(table.language, table.normalizedText),
   lessonIdx: index("sentences_lesson_idx").on(table.lessonId)
+}));
+
+export const lessonSentences = pgTable("lesson_sentences", {
+  id: idColumn(),
+  lessonId: uuid("lesson_id").notNull().references(() => lessons.id, { onDelete: "cascade" }),
+  sentenceId: uuid("sentence_id").notNull().references(() => sentences.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  ...timestamps()
+}, (table) => ({
+  lessonSentenceIdx: uniqueIndex("lesson_sentences_lesson_sentence_idx").on(table.lessonId, table.sentenceId),
+  lessonPositionIdx: uniqueIndex("lesson_sentences_lesson_position_idx").on(table.lessonId, table.position)
+}));
+
+export const sentenceVocabularyLinks = pgTable("sentence_vocabulary_links", {
+  id: idColumn(),
+  sentenceId: uuid("sentence_id").notNull().references(() => sentences.id, { onDelete: "cascade" }),
+  vocabularyItemId: uuid("vocabulary_item_id").notNull().references(() => learningItems.id, { onDelete: "cascade" }),
+  surfaceText: text("surface_text").notNull(),
+  ...timestamps()
+}, (table) => ({
+  uniqueLinkIdx: uniqueIndex("sentence_vocabulary_links_unique_idx").on(table.sentenceId, table.vocabularyItemId, table.surfaceText),
+  sentenceIdx: index("sentence_vocabulary_links_sentence_idx").on(table.sentenceId),
+  itemIdx: index("sentence_vocabulary_links_item_idx").on(table.vocabularyItemId)
+}));
+
+export const sentenceGrammarLinks = pgTable("sentence_grammar_links", {
+  id: idColumn(),
+  sentenceId: uuid("sentence_id").notNull().references(() => sentences.id, { onDelete: "cascade" }),
+  grammarItemId: uuid("grammar_item_id").notNull().references(() => learningItems.id, { onDelete: "cascade" }),
+  surfaceText: text("surface_text").notNull(),
+  ...timestamps()
+}, (table) => ({
+  uniqueLinkIdx: uniqueIndex("sentence_grammar_links_unique_idx").on(table.sentenceId, table.grammarItemId, table.surfaceText),
+  sentenceIdx: index("sentence_grammar_links_sentence_idx").on(table.sentenceId),
+  itemIdx: index("sentence_grammar_links_item_idx").on(table.grammarItemId)
+}));
+
+export const sentenceChunkLinks = pgTable("sentence_chunk_links", {
+  id: idColumn(),
+  sentenceId: uuid("sentence_id").notNull().references(() => sentences.id, { onDelete: "cascade" }),
+  chunkItemId: uuid("chunk_item_id").notNull().references(() => learningItems.id, { onDelete: "cascade" }),
+  surfaceText: text("surface_text").notNull(),
+  ...timestamps()
+}, (table) => ({
+  uniqueLinkIdx: uniqueIndex("sentence_chunk_links_unique_idx").on(table.sentenceId, table.chunkItemId, table.surfaceText),
+  sentenceIdx: index("sentence_chunk_links_sentence_idx").on(table.sentenceId),
+  itemIdx: index("sentence_chunk_links_item_idx").on(table.chunkItemId)
 }));
 
 export const sentenceTokens = pgTable("sentence_tokens", {

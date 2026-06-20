@@ -2,59 +2,106 @@ export type LearningItemType = "word" | "grammar" | "chunk";
 export type SentenceDrillType = "recall" | "reconstruction" | "cloze" | "transformation" | "original_sentence";
 export type SentenceGrade = "easy" | "correct" | "hard" | "failed";
 
-export interface LessonFocusInput {
-  type: LearningItemType;
-  canonicalKey: string;
-  displayText: string;
+export interface LessonWordInput {
+  surface: string;
+  lemma?: string;
   meaning?: string;
+  role?: string;
   explanation?: string;
-  commonMistakes?: string[];
 }
 
-export interface LessonTokenInput {
-  text: string;
-  type?: LearningItemType;
-  canonicalKey?: string;
+export interface LessonGrammarInput {
+  pattern: string;
+  surface?: string;
   meaning?: string;
   explanation?: string;
-  commonMistakes?: string[];
 }
 
-export interface LessonDrillsInput {
-  recallPrompt?: string;
-  clozePrompt?: string;
-  clozeAnswer?: string;
-  transformPrompt?: string;
-  transformAnswer?: string;
+export interface LessonChunkInput {
+  surface: string;
+  meaning?: string;
+  explanation?: string;
+  type?: string;
+  level?: string;
+  tags?: string[];
 }
 
 export interface LessonSentenceInput {
   text: string;
-  translation: string;
-  focus?: LessonFocusInput;
-  tokens?: LessonTokenInput[];
-  drills?: LessonDrillsInput;
+  translation?: string;
+  words?: LessonWordInput[];
+  grammar?: LessonGrammarInput[];
+  chunks?: LessonChunkInput[];
 }
 
 export interface LessonImportInput {
-  targetLanguage: string;
+  language: string;
   baseLanguage: string;
-  level?: string;
   title: string;
+  description?: string;
+  source?: string;
+  level?: string;
+  tags?: string[];
   sentences: LessonSentenceInput[];
-}
-
-export interface ImportWarning {
-  code: string;
-  message: string;
-  sentenceIndex?: number;
-  canonicalKey?: string;
 }
 
 export interface ImportValidationResult {
   lesson?: LessonImportInput;
   errors: string[];
-  warnings: ImportWarning[];
+}
+
+export interface LessonImportPreviewLesson {
+  language: string;
+  baseLanguage: string;
+  title: string;
+  description?: string;
+  source?: string;
+  level?: string;
+  tags: string[];
+}
+
+export interface LessonImportPreviewSentence {
+  index: number;
+  text: string;
+  translation: string;
+  duplicateSentence: boolean;
+  words: LessonWordInput[];
+  grammar: LessonGrammarInput[];
+  chunks: LessonChunkInput[];
+}
+
+export interface LessonImportPreviewItem {
+  canonicalKey: string;
+  type: LearningItemType;
+  displayText: string;
+  meaning?: string;
+  explanation?: string;
+  status: "new" | "existing";
+}
+
+export interface LessonImportPreviewResult {
+  lesson: LessonImportPreviewLesson;
+  sentenceCount: number;
+  duplicateImport: boolean;
+  validationErrors: string[];
+  sentences: LessonImportPreviewSentence[];
+  vocabulary: LessonImportPreviewItem[];
+  grammar: LessonImportPreviewItem[];
+  chunks: LessonImportPreviewItem[];
+}
+
+export interface LessonImportSummary {
+  lessonCreated: boolean;
+  sentencesImported: number;
+  sentencesSkipped: number;
+  vocabularyCreated: number;
+  vocabularyReused: number;
+  grammarCreated: number;
+  grammarReused: number;
+  chunksCreated: number;
+  chunksReused: number;
+  linksCreated: number;
+  errors: string[];
 }
 
 export interface DrillBlueprint {
@@ -64,33 +111,3 @@ export interface DrillBlueprint {
   payload: Record<string, unknown>;
 }
 
-export interface LearningItemPreview {
-  canonicalKey: string;
-  type: LearningItemType;
-  displayText: string;
-  meaning?: string;
-  explanation?: string;
-  commonMistakes: string[];
-  status: "existing" | "new" | "conflict";
-  existingId?: string;
-  conflictMessage?: string;
-}
-
-export interface SentencePreview {
-  index: number;
-  text: string;
-  translation: string;
-  focus?: LessonFocusInput;
-  tokens: LessonTokenInput[];
-  drills: DrillBlueprint[];
-  duplicateSentence: boolean;
-}
-
-export interface ImportPreviewResult {
-  sourceHash: string;
-  lesson: LessonImportInput;
-  sentences: SentencePreview[];
-  learningItems: LearningItemPreview[];
-  warnings: ImportWarning[];
-  duplicateImport: boolean;
-}

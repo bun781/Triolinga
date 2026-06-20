@@ -1,11 +1,23 @@
 import { createHash } from "node:crypto";
 
 export function normalizeSentenceText(text: string): string {
-  return text.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  return normalizeText(text).toLocaleLowerCase();
+}
+
+export function normalizeCanonicalText(text: string): string {
+  return normalizeText(text).toLocaleLowerCase();
+}
+
+export function buildCanonicalKey(language: string, value: string): string {
+  return `${normalizeCanonicalText(language)}:${normalizeCanonicalText(value)}`;
 }
 
 export function hashLessonSource(value: unknown): string {
   return createHash("sha256").update(stableStringify(value)).digest("hex");
+}
+
+function normalizeText(text: string): string {
+  return text.normalize("NFKC").trim().replace(/\s+/g, " ");
 }
 
 function stableStringify(value: unknown): string {
@@ -22,3 +34,4 @@ function stableStringify(value: unknown): string {
 
   return JSON.stringify(value);
 }
+

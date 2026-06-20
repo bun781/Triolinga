@@ -1,32 +1,273 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { inArray, eq, and } from "drizzle-orm";
 import {
   drills,
+  lessonSentences,
   learningItems,
   lessons,
   reviewStates,
-  sentenceItemLinks,
-  sentenceTokens,
+  sentenceChunkLinks,
+  sentenceGrammarLinks,
+  sentenceVocabularyLinks,
   sentences
 } from "@/db/schema";
 import { db } from "@/lib/server/db";
 import { generateSentenceForgeDrills } from "@/lib/language/generateDrills";
-import { hashLessonSource, normalizeSentenceText } from "@/lib/language/normalize";
+import { buildCanonicalKey, hashLessonSource, normalizeSentenceText } from "@/lib/language/normalize";
 import type {
-  ImportPreviewResult,
-  ImportWarning,
-  LearningItemPreview,
   LessonImportInput,
+  LessonImportPreviewItem,
+  LessonImportPreviewResult,
+  LessonImportSummary,
+  LessonSentenceInput
 } from "@/lib/language/types";
 
-interface BuildPreviewOptions {
-  lesson: LessonImportInput;
-  warnings: ImportWarning[];
+interface ExistingLessonItem {
+  id: string;
+  canonicalKey: string;
+  type: "word" | "grammar" | "chunk";
+  displayText: string;
+  meaning: string | null;
+  explanation: string | null;
 }
 
-export async function buildImportPreview({
-  lesson,
-  warnings
-}: BuildPreviewOptions): Promise<ImportPreviewResult> {
+interface ExistingSentence {
+  id: string;
+  normalizedText: string;
+}
+
+interface CandidateItem {
+  canonicalKey: string;
+  type: "word" | "grammar" | "chunk";
+  displayText: string;
+  meaning?: string;
+  explanation?: string;
+}
+
+interface ImportPlan {
+  sourceHash: string;
+  duplicateImport: boolean;
+  validationErrors: string[];
+  lessonPreview: LessonImportPreviewResult["lesson"];
+  sentencePreviews: LessonImportPreviewResult["sentences"];
+  vocabulary: LessonImportPreviewItem[];
+  grammar: LessonImportPreviewItem[];
+  chunks: LessonImportPreviewItem[];
+  candidateItems: CandidateItem[];
+  existingItemsByKey: Map<string, ExistingLessonItem>;
+  existingSentencesByText: Map<string, ExistingSentence>;
+}
+
+export async function buildImportPreview(lesson: LessonImportInput): Promise<LessonImportPreviewResult> {
+  const plan = await buildImportPlan(lesson);
+  return {
+    lesson: plan.lessonPreview,
+    sentenceCount: plan.sentencePreviews.length,
+    duplicateImport: plan.duplicateImport,
+    validationErrors: plan.validationErrors,
+    sentences: plan.sentencePreviews,
+    vocabulary: plan.vocabulary,
+    grammar: plan.grammar,
+    chunks: plan.chunks
+  };
+}
+
+export async function importApprovedLesson(lesson: LessonImportInput): Promise<LessonImportSummary> {
+  const sourceHash = hashLessonSource(lesson);
+  const [duplicateLesson] = await db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .where(eq(lessons.sourceHash, sourceHash))
+    .limit(1);
+
+  if (duplicateLesson) {
+    return {
+      lessonCreated: false,
+      sentencesImported: 0,
+      sentencesSkipped: 0,
+      vocabularyCreated: 0,
+      vocabularyReused: 0,
+      grammarCreated: 0,
+      grammarReused: 0,
+      chunksCreated: 0,
+      chunksReused: 0,
+      linksCreated: 0,
+      errors: []
+    };
+  }
+
+  const plan = await buildImportPlan(lesson);
+
+  if (plan.duplicateImport) {
+    return {
+      lessonCreated: false,
+      sentencesImported: 0,
+      sentencesSkipped: 0,
+      vocabularyCreated: 0,
+      vocabularyReused: 0,
+      grammarCreated: 0,
+      grammarReused: 0,
+      chunksCreated: 0,
+      chunksReused: 0,
+      linksCreated: 0,
+      errors: ["This lesson has already been imported."]
+    };
+  }
+
+  if (plan.validationErrors.length) {
+    return {
+      lessonCreated: false,
+      sentencesImported: 0,
+      sentencesSkipped: 0,
+      vocabularyCreated: 0,
+      vocabularyReused: 0,
+      grammarCreated: 0,
+      grammarReused: 0,
+      chunksCreated: 0,
+      chunksReused: 0,
+      linksCreated: 0,
+      errors: plan.validationErrors
+    };
+  }
+
+  return db.transaction(async (tx) => {
+    const [lessonRow] = await tx.insert(lessons).values({
+      targetLanguage: lesson.language,
+      baseLanguage: lesson.baseLanguage,
+      description: lesson.description,
+      source: lesson.source,
+      level: lesson.level,
+      title: lesson.title,
+      sourceHash,
+      tags: lesson.tags ?? []
+    }).returning({ id: lessons.id });
+
+    let sentencesImported = 0;
+    let sentencesSkipped = 0;
+
+    const itemIdByKey = new Map<string, string>();
+    let linksCreated = 0;
+
+    const itemSummary = summarizeItemOccurrences(lesson, plan.existingItemsByKey);
+    const vocabularyCreated = itemSummary.vocabularyCreated;
+    const vocabularyReused = itemSummary.vocabularyReused;
+    const grammarCreated = itemSummary.grammarCreated;
+    const grammarReused = itemSummary.grammarReused;
+    const chunksCreated = itemSummary.chunksCreated;
+    const chunksReused = itemSummary.chunksReused;
+
+    const existingItems = [...plan.existingItemsByKey.values()];
+    for (const item of existingItems) {
+      itemIdByKey.set(item.canonicalKey, item.id);
+    }
+
+    const newItems = plan.candidateItems.filter((candidate) => !plan.existingItemsByKey.has(candidate.canonicalKey));
+    if (newItems.length) {
+      const insertedItems = await tx.insert(learningItems).values(newItems.map((candidate) => ({
+        language: lesson.language,
+        type: candidate.type,
+        canonicalKey: candidate.canonicalKey,
+        displayText: candidate.displayText,
+        meaning: candidate.meaning,
+        explanation: candidate.explanation,
+        commonMistakes: []
+      }))).returning({
+        id: learningItems.id,
+        canonicalKey: learningItems.canonicalKey,
+        type: learningItems.type
+      });
+
+      for (const item of insertedItems) {
+        itemIdByKey.set(item.canonicalKey, item.id);
+      }
+    }
+
+    for (const candidate of plan.candidateItems) {
+      const existing = plan.existingItemsByKey.get(candidate.canonicalKey);
+      if (existing) {
+        itemIdByKey.set(candidate.canonicalKey, existing.id);
+        const patch: { meaning?: string | null; explanation?: string | null } = {};
+        if (!existing.meaning && candidate.meaning) patch.meaning = candidate.meaning;
+        if (!existing.explanation && candidate.explanation) patch.explanation = candidate.explanation;
+        if (Object.keys(patch).length) {
+          await tx.update(learningItems).set(patch).where(eq(learningItems.id, existing.id));
+        }
+      }
+    }
+
+    for (const [index, sentence] of lesson.sentences.entries()) {
+      const normalizedText = normalizeSentenceText(sentence.text);
+      const existingSentence = plan.existingSentencesByText.get(normalizedText);
+      let sentenceId: string;
+
+      if (existingSentence) {
+        sentenceId = existingSentence.id;
+        sentencesSkipped += 1;
+      } else {
+        const [insertedSentence] = await tx.insert(sentences).values({
+          lessonId: lessonRow.id,
+          language: lesson.language,
+          text: sentence.text,
+          normalizedText,
+          translation: sentence.translation ?? ""
+        }).returning({ id: sentences.id });
+        sentenceId = insertedSentence.id;
+        sentencesImported += 1;
+      }
+
+      const [lessonSentenceRow] = await tx.insert(lessonSentences).values({
+        lessonId: lessonRow.id,
+        sentenceId,
+        position: index
+      }).returning({ id: lessonSentences.id });
+      if (lessonSentenceRow) {
+        linksCreated += 1;
+      }
+
+      const sentenceLinksCreated = await createSentenceItemLinks({
+        tx,
+        language: lesson.language,
+        sentenceId,
+        sentence,
+        itemIdByKey
+      });
+      linksCreated += sentenceLinksCreated;
+
+      const focusItemId = pickFocusItemId(lesson.language, sentence, itemIdByKey);
+      const drillsToInsert = generateSentenceForgeDrills(normalizeSentenceImport(sentence));
+      const insertedDrills = await tx.insert(drills).values(drillsToInsert.map((drill) => ({
+        sentenceId,
+        learningItemId: focusItemId,
+        type: drill.type,
+        prompt: drill.prompt,
+        answer: drill.answer,
+        payload: drill.payload
+      }))).returning({ id: drills.id });
+
+      await tx.insert(reviewStates).values(insertedDrills.map((drill) => ({
+        drillId: drill.id,
+        reviewState: "new",
+        nextReviewAt: new Date(),
+        intervalDays: 0
+      })));
+    }
+
+    return {
+      lessonCreated: Boolean(lessonRow?.id),
+      sentencesImported,
+      sentencesSkipped,
+      vocabularyCreated,
+      vocabularyReused,
+      grammarCreated,
+      grammarReused,
+      chunksCreated,
+      chunksReused,
+      linksCreated,
+      errors: []
+    };
+  });
+}
+
+async function buildImportPlan(lesson: LessonImportInput): Promise<ImportPlan> {
   const sourceHash = hashLessonSource(lesson);
   const [duplicateImport] = await db
     .select({ id: lessons.id })
@@ -37,220 +278,109 @@ export async function buildImportPreview({
   const normalizedTexts = lesson.sentences.map((sentence) => normalizeSentenceText(sentence.text));
   const existingSentences = normalizedTexts.length
     ? await db
-      .select({ normalizedText: sentences.normalizedText })
+      .select({ id: sentences.id, normalizedText: sentences.normalizedText })
       .from(sentences)
       .where(and(
-        eq(sentences.language, lesson.targetLanguage),
+        eq(sentences.language, lesson.language),
         inArray(sentences.normalizedText, normalizedTexts)
       ))
     : [];
 
-  const itemCandidates = collectLearningItemCandidates(lesson);
-  const canonicalKeys = itemCandidates.map((item) => item.canonicalKey);
+  const candidateItems = collectCandidates(lesson);
+  const canonicalKeys = candidateItems.map((candidate) => candidate.canonicalKey);
   const existingItems = canonicalKeys.length
     ? await db
-      .select()
+      .select({
+        id: learningItems.id,
+        canonicalKey: learningItems.canonicalKey,
+        type: learningItems.type,
+        displayText: learningItems.displayText,
+        meaning: learningItems.meaning,
+        explanation: learningItems.explanation
+      })
       .from(learningItems)
       .where(inArray(learningItems.canonicalKey, canonicalKeys))
     : [];
 
-  const existingByKey = new Map(existingItems.map((item) => [item.canonicalKey, item]));
-  const itemPreviews = itemCandidates.map<LearningItemPreview>((candidate) => {
-    const existing = existingByKey.get(candidate.canonicalKey);
-    if (!existing) {
-      return { ...candidate, status: "new" };
-    }
-
-    const conflict = existing.type !== candidate.type ||
-      existing.displayText !== candidate.displayText ||
-      (existing.meaning ?? "") !== (candidate.meaning ?? "");
-
-    return {
-      ...candidate,
-      status: conflict ? "conflict" : "existing",
-      existingId: existing.id,
-      conflictMessage: conflict ? "Canonical key matches an existing item with different details." : undefined
-    };
-  });
-
-  const sentenceSet = new Set(existingSentences.map((sentence) => sentence.normalizedText));
-  const conflictWarnings = itemPreviews
-    .filter((item) => item.status === "conflict")
-    .map((item) => ({
-      code: "canonical_conflict",
-      message: item.conflictMessage ?? "Canonical key conflicts with an existing learning item.",
-      canonicalKey: item.canonicalKey
-    }));
+  const existingItemsByKey = new Map(existingItems.map((item) => [item.canonicalKey, item]));
+  const existingSentencesByText = new Map(existingSentences.map((sentence) => [sentence.normalizedText, sentence]));
+  const conflicts = candidateItems
+    .filter((candidate) => {
+      const existing = existingItemsByKey.get(candidate.canonicalKey);
+      return Boolean(existing && existing.type !== candidate.type);
+    })
+    .map((candidate) => `${candidate.canonicalKey} already exists with a different item type.`);
 
   return {
     sourceHash,
-    lesson,
     duplicateImport: Boolean(duplicateImport),
-    warnings: [...warnings, ...conflictWarnings],
-    learningItems: itemPreviews,
-    sentences: lesson.sentences.map((sentence, index) => ({
+    validationErrors: conflicts,
+    lessonPreview: {
+      language: lesson.language,
+      baseLanguage: lesson.baseLanguage,
+      title: lesson.title,
+      description: lesson.description,
+      source: lesson.source,
+      level: lesson.level,
+      tags: lesson.tags ?? []
+    },
+    sentencePreviews: lesson.sentences.map((sentence, index) => ({
       index,
       text: sentence.text,
-      translation: sentence.translation,
-      focus: sentence.focus,
-      tokens: sentence.tokens ?? [],
-      drills: generateSentenceForgeDrills(sentence),
-      duplicateSentence: sentenceSet.has(normalizeSentenceText(sentence.text))
-    }))
+      translation: sentence.translation ?? "",
+      duplicateSentence: existingSentencesByText.has(normalizeSentenceText(sentence.text)),
+      words: sentence.words ?? [],
+      grammar: sentence.grammar ?? [],
+      chunks: sentence.chunks ?? []
+    })),
+    vocabulary: toPreviewItems(candidateItems.filter((item) => item.type === "word"), existingItemsByKey),
+    grammar: toPreviewItems(candidateItems.filter((item) => item.type === "grammar"), existingItemsByKey),
+    chunks: toPreviewItems(candidateItems.filter((item) => item.type === "chunk"), existingItemsByKey),
+    candidateItems,
+    existingItemsByKey,
+    existingSentencesByText
   };
 }
 
-export async function importApprovedLesson(lesson: LessonImportInput) {
-  const preview = await buildImportPreview({ lesson, warnings: [] });
-
-  if (preview.duplicateImport) {
-    throw new Error("This lesson has already been imported.");
-  }
-
-  if (preview.sentences.some((sentence) => sentence.duplicateSentence)) {
-    throw new Error("One or more sentences already exist for this language.");
-  }
-
-  if (preview.learningItems.some((item) => item.status === "conflict")) {
-    throw new Error("Resolve canonical key conflicts before importing.");
-  }
-
-  return db.transaction(async (tx) => {
-    const [lessonRow] = await tx.insert(lessons).values({
-      targetLanguage: lesson.targetLanguage,
-      baseLanguage: lesson.baseLanguage,
-      level: lesson.level,
-      title: lesson.title,
-      sourceHash: preview.sourceHash
-    }).returning();
-
-    const existingItems = preview.learningItems.filter((item) => item.status === "existing");
-    const itemByKey = new Map(existingItems.map((item) => [item.canonicalKey, item.existingId as string]));
-    const newItems = preview.learningItems.filter((item) => item.status === "new");
-
-    if (newItems.length) {
-      const insertedItems = await tx.insert(learningItems).values(newItems.map((item) => ({
-        language: lesson.targetLanguage,
-        type: item.type,
-        canonicalKey: item.canonicalKey,
-        displayText: item.displayText,
-        meaning: item.meaning,
-        explanation: item.explanation,
-        commonMistakes: item.commonMistakes
-      }))).returning();
-
-      for (const item of insertedItems) {
-        itemByKey.set(item.canonicalKey, item.id);
-      }
-    }
-
-    for (const sentence of lesson.sentences) {
-      const focusItemId = sentence.focus ? itemByKey.get(sentence.focus.canonicalKey) : undefined;
-      const [sentenceRow] = await tx.insert(sentences).values({
-        lessonId: lessonRow.id,
-        language: lesson.targetLanguage,
-        text: sentence.text,
-        normalizedText: normalizeSentenceText(sentence.text),
-        translation: sentence.translation,
-        focusCanonicalKey: sentence.focus?.canonicalKey,
-        focusDisplayText: sentence.focus?.displayText,
-        focusMeaning: sentence.focus?.meaning,
-        focusExplanation: sentence.focus?.explanation
-      }).returning();
-
-      const tokens = sentence.tokens ?? [];
-      if (tokens.length) {
-        await tx.insert(sentenceTokens).values(tokens.map((token, position) => ({
-          sentenceId: sentenceRow.id,
-          position,
-          text: token.text,
-          itemType: token.type,
-          canonicalKey: token.canonicalKey,
-          meaning: token.meaning,
-          explanation: token.explanation,
-          commonMistakes: token.commonMistakes ?? [],
-          learningItemId: token.canonicalKey ? itemByKey.get(token.canonicalKey) : undefined
-        })));
-      }
-
-      const linkedIds = new Set<string>();
-      if (focusItemId) {
-        linkedIds.add(`focus:${focusItemId}`);
-        await tx.insert(sentenceItemLinks).values({
-          sentenceId: sentenceRow.id,
-          learningItemId: focusItemId,
-          role: "focus"
-        });
-      }
-
-      for (const token of tokens) {
-        const itemId = token.canonicalKey ? itemByKey.get(token.canonicalKey) : undefined;
-        const linkKey = itemId ? `token:${itemId}` : undefined;
-        if (itemId && linkKey && !linkedIds.has(linkKey)) {
-          linkedIds.add(linkKey);
-          await tx.insert(sentenceItemLinks).values({
-            sentenceId: sentenceRow.id,
-            learningItemId: itemId,
-            role: "token"
-          });
-        }
-      }
-
-      const insertedDrills = await tx.insert(drills).values(generateSentenceForgeDrills(sentence).map((drill) => ({
-        sentenceId: sentenceRow.id,
-        learningItemId: focusItemId,
-        type: drill.type,
-        prompt: drill.prompt,
-        answer: drill.answer,
-        payload: drill.payload
-      }))).returning();
-
-      await tx.insert(reviewStates).values(insertedDrills.map((drill) => ({
-        drillId: drill.id,
-        reviewState: "new",
-        nextReviewAt: new Date(),
-        intervalDays: 0
-      })));
-    }
-
-    return { lessonId: lessonRow.id, sentenceCount: lesson.sentences.length };
-  });
-}
-
-function collectLearningItemCandidates(lesson: LessonImportInput): LearningItemPreview[] {
-  const byKey = new Map<string, LearningItemPreview>();
+function collectCandidates(lesson: LessonImportInput): CandidateItem[] {
+  const items = new Map<string, CandidateItem>();
 
   for (const sentence of lesson.sentences) {
-    if (sentence.focus) {
-      upsertCandidate(byKey, {
-        canonicalKey: sentence.focus.canonicalKey,
-        type: sentence.focus.type,
-        displayText: sentence.focus.displayText,
-        meaning: sentence.focus.meaning,
-        explanation: sentence.focus.explanation,
-        commonMistakes: sentence.focus.commonMistakes ?? [],
-        status: "new"
+    for (const word of sentence.words ?? []) {
+      upsertCandidate(items, {
+        canonicalKey: buildCanonicalKey(lesson.language, word.lemma ?? word.surface),
+        type: "word",
+        displayText: word.lemma ?? word.surface,
+        meaning: word.meaning,
+        explanation: word.explanation
       });
     }
 
-    for (const token of sentence.tokens ?? []) {
-      if (!token.type || !token.canonicalKey) continue;
-      upsertCandidate(byKey, {
-        canonicalKey: token.canonicalKey,
-        type: token.type,
-        displayText: token.text,
-        meaning: token.meaning,
-        explanation: token.explanation,
-        commonMistakes: token.commonMistakes ?? [],
-        status: "new"
+    for (const grammar of sentence.grammar ?? []) {
+      upsertCandidate(items, {
+        canonicalKey: buildCanonicalKey(lesson.language, grammar.pattern),
+        type: "grammar",
+        displayText: grammar.pattern,
+        meaning: grammar.meaning,
+        explanation: grammar.explanation
+      });
+    }
+
+    for (const chunk of sentence.chunks ?? []) {
+      upsertCandidate(items, {
+        canonicalKey: buildCanonicalKey(lesson.language, chunk.surface),
+        type: "chunk",
+        displayText: chunk.surface,
+        meaning: chunk.meaning,
+        explanation: chunk.explanation
       });
     }
   }
 
-  return [...byKey.values()];
+  return [...items.values()];
 }
 
-function upsertCandidate(items: Map<string, LearningItemPreview>, candidate: LearningItemPreview): void {
+function upsertCandidate(items: Map<string, CandidateItem>, candidate: CandidateItem): void {
   const existing = items.get(candidate.canonicalKey);
   if (!existing) {
     items.set(candidate.canonicalKey, candidate);
@@ -259,9 +389,170 @@ function upsertCandidate(items: Map<string, LearningItemPreview>, candidate: Lea
 
   items.set(candidate.canonicalKey, {
     ...existing,
-    displayText: existing.displayText || candidate.displayText,
     meaning: existing.meaning ?? candidate.meaning,
-    explanation: existing.explanation ?? candidate.explanation,
-    commonMistakes: [...new Set([...existing.commonMistakes, ...candidate.commonMistakes])]
+    explanation: existing.explanation ?? candidate.explanation
   });
+}
+
+function toPreviewItems(items: CandidateItem[], existingItemsByKey: Map<string, ExistingLessonItem>): LessonImportPreviewItem[] {
+  return items.map((candidate) => ({
+    canonicalKey: candidate.canonicalKey,
+    type: candidate.type,
+    displayText: candidate.displayText,
+    meaning: candidate.meaning,
+    explanation: candidate.explanation,
+    status: existingItemsByKey.has(candidate.canonicalKey) ? "existing" : "new"
+  }));
+}
+
+function summarizeItemOccurrences(
+  lesson: LessonImportInput,
+  existingItemsByKey: Map<string, ExistingLessonItem>
+): {
+  vocabularyCreated: number;
+  vocabularyReused: number;
+  grammarCreated: number;
+  grammarReused: number;
+  chunksCreated: number;
+  chunksReused: number;
+} {
+  const seen = new Set<string>();
+  let vocabularyCreated = 0;
+  let vocabularyReused = 0;
+  let grammarCreated = 0;
+  let grammarReused = 0;
+  let chunksCreated = 0;
+  let chunksReused = 0;
+
+  for (const sentence of lesson.sentences) {
+    for (const word of sentence.words ?? []) {
+      const key = buildCanonicalKey(lesson.language, word.lemma ?? word.surface);
+      if (existingItemsByKey.has(key) || seen.has(key)) {
+        vocabularyReused += 1;
+      } else {
+        vocabularyCreated += 1;
+        seen.add(key);
+      }
+    }
+
+    for (const grammar of sentence.grammar ?? []) {
+      const key = buildCanonicalKey(lesson.language, grammar.pattern);
+      if (existingItemsByKey.has(key) || seen.has(key)) {
+        grammarReused += 1;
+      } else {
+        grammarCreated += 1;
+        seen.add(key);
+      }
+    }
+
+    for (const chunk of sentence.chunks ?? []) {
+      const key = buildCanonicalKey(lesson.language, chunk.surface);
+      if (existingItemsByKey.has(key) || seen.has(key)) {
+        chunksReused += 1;
+      } else {
+        chunksCreated += 1;
+        seen.add(key);
+      }
+    }
+  }
+
+  return {
+    vocabularyCreated,
+    vocabularyReused,
+    grammarCreated,
+    grammarReused,
+    chunksCreated,
+    chunksReused
+  };
+}
+
+function normalizeSentenceImport(sentence: LessonSentenceInput) {
+  return {
+    ...sentence,
+    translation: sentence.translation ?? "",
+    words: sentence.words ?? [],
+    grammar: sentence.grammar ?? [],
+    chunks: sentence.chunks ?? []
+  };
+}
+
+async function createSentenceItemLinks({
+  tx,
+  language,
+  sentenceId,
+  sentence,
+  itemIdByKey
+}: {
+  tx: typeof db;
+  language: string;
+  sentenceId: string;
+  sentence: LessonSentenceInput;
+  itemIdByKey: Map<string, string>;
+}): Promise<number> {
+  const seen = new Set<string>();
+  let inserted = 0;
+
+  for (const word of sentence.words ?? []) {
+    const key = buildCanonicalKey(language, word.lemma ?? word.surface);
+    const itemId = itemIdByKey.get(key);
+    if (!itemId || seen.has(`word:${itemId}:${word.surface}`)) continue;
+    seen.add(`word:${itemId}:${word.surface}`);
+    const [row] = await tx.insert(sentenceVocabularyLinks).values({
+      sentenceId,
+      vocabularyItemId: itemId,
+      surfaceText: word.surface
+    }).returning({ id: sentenceVocabularyLinks.id });
+    if (row) inserted += 1;
+  }
+
+  for (const grammar of sentence.grammar ?? []) {
+    const key = buildCanonicalKey(language, grammar.pattern);
+    const itemId = itemIdByKey.get(key);
+    const surfaceText = grammar.surface ?? grammar.pattern;
+    if (!itemId || seen.has(`grammar:${itemId}:${surfaceText}`)) continue;
+    seen.add(`grammar:${itemId}:${surfaceText}`);
+    const [row] = await tx.insert(sentenceGrammarLinks).values({
+      sentenceId,
+      grammarItemId: itemId,
+      surfaceText
+    }).returning({ id: sentenceGrammarLinks.id });
+    if (row) inserted += 1;
+  }
+
+  for (const chunk of sentence.chunks ?? []) {
+    const key = buildCanonicalKey(language, chunk.surface);
+    const itemId = itemIdByKey.get(key);
+    if (!itemId || seen.has(`chunk:${itemId}:${chunk.surface}`)) continue;
+    seen.add(`chunk:${itemId}:${chunk.surface}`);
+    const [row] = await tx.insert(sentenceChunkLinks).values({
+      sentenceId,
+      chunkItemId: itemId,
+      surfaceText: chunk.surface
+    }).returning({ id: sentenceChunkLinks.id });
+    if (row) inserted += 1;
+  }
+
+  return inserted;
+}
+
+function pickFocusItemId(language: string, sentence: LessonSentenceInput, itemIdByKey: Map<string, string>): string | undefined {
+  const word = sentence.words?.[0];
+  if (word) {
+    const itemId = itemIdByKey.get(buildCanonicalKey(language, word.lemma ?? word.surface));
+    if (itemId) return itemId;
+  }
+
+  const grammar = sentence.grammar?.[0];
+  if (grammar) {
+    const itemId = itemIdByKey.get(buildCanonicalKey(language, grammar.pattern));
+    if (itemId) return itemId;
+  }
+
+  const chunk = sentence.chunks?.[0];
+  if (chunk) {
+    const itemId = itemIdByKey.get(buildCanonicalKey(language, chunk.surface));
+    if (itemId) return itemId;
+  }
+
+  return undefined;
 }

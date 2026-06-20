@@ -8,15 +8,16 @@ export async function POST(request: Request) {
     const parsed = parseLessonJson(source ?? "");
 
     if (!parsed.lesson) {
-      return NextResponse.json({ errors: parsed.errors, warnings: parsed.warnings }, { status: 400 });
+      return NextResponse.json({ errors: parsed.errors }, { status: 400 });
     }
 
-    const preview = await buildImportPreview({
-      lesson: parsed.lesson,
-      warnings: parsed.warnings
-    });
+    const preview = await buildImportPreview(parsed.lesson);
 
-    return NextResponse.json({ preview, errors: [] });
+    if (preview.validationErrors.length) {
+      return NextResponse.json({ errors: preview.validationErrors, preview }, { status: 400 });
+    }
+
+    return NextResponse.json({ preview });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to preview lesson." },
