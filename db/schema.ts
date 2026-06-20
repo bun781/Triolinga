@@ -54,7 +54,7 @@ export const learningItems = pgTable("learning_items", {
   commonMistakes: jsonb("common_mistakes").$type<string[]>().default([]).notNull(),
   ...timestamps()
 }, (table) => ({
-  canonicalIdx: uniqueIndex("learning_items_canonical_idx").on(table.canonicalKey),
+  canonicalIdx: uniqueIndex("learning_items_type_canonical_idx").on(table.type, table.canonicalKey),
   languageTypeIdx: index("learning_items_language_type_idx").on(table.language, table.type)
 }));
 

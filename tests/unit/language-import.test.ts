@@ -154,6 +154,35 @@ describe("lesson import validation", () => {
     expect(summary.chunksReused).toBe(1);
   });
 
+  it("allows the same canonical text as different learning item types", async () => {
+    const lesson = buildLesson([
+      {
+        text: "안녕하세요.",
+        translation: "Hello.",
+        words: [{ surface: "안녕하세요", lemma: "안녕하세요", meaning: "hello", role: "greeting" }],
+        chunks: [{ surface: "안녕하세요", meaning: "Hello", type: "expression" }]
+      }
+    ]);
+
+    const parsed = parseLessonJson(JSON.stringify(lesson));
+    expect(parsed.errors).toEqual([]);
+
+    const preview = await buildImportPreview(parsed.lesson!);
+    expect(preview.validationErrors).toEqual([]);
+    expect(preview.vocabulary).toHaveLength(1);
+    expect(preview.chunks).toHaveLength(1);
+
+    const summary = await importApprovedLesson(parsed.lesson!);
+    expect(summary.vocabularyCreated).toBe(1);
+    expect(summary.chunksCreated).toBe(1);
+    expect(mockDb.store.learningItems).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "word", canonicalKey: "ko:안녕하세요" }),
+      expect.objectContaining({ type: "chunk", canonicalKey: "ko:안녕하세요" })
+    ]));
+    expect(mockDb.store.sentenceVocabularyLinks).toHaveLength(1);
+    expect(mockDb.store.sentenceChunkLinks).toHaveLength(1);
+  });
+
   it("skips duplicate links for repeated surfaces", async () => {
     const lesson = buildLesson([
       {

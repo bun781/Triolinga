@@ -157,10 +157,10 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
 
     const existingItems = [...plan.existingItemsByKey.values()];
     for (const item of existingItems) {
-      itemIdByKey.set(item.canonicalKey, item.id);
+      itemIdByKey.set(itemLookupKey(item), item.id);
     }
 
-    const newItems = plan.candidateItems.filter((candidate) => !plan.existingItemsByKey.has(candidate.canonicalKey));
+    const newItems = plan.candidateItems.filter((candidate) => !plan.existingItemsByKey.has(itemLookupKey(candidate)));
     if (newItems.length) {
       const insertedItems = await tx.insert(learningItems).values(newItems.map((candidate) => ({
         language: lesson.language,
@@ -177,14 +177,14 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
       });
 
       for (const item of insertedItems) {
-        itemIdByKey.set(item.canonicalKey, item.id);
+        itemIdByKey.set(itemLookupKey(item), item.id);
       }
     }
 
     for (const candidate of plan.candidateItems) {
-      const existing = plan.existingItemsByKey.get(candidate.canonicalKey);
+      const existing = plan.existingItemsByKey.get(itemLookupKey(candidate));
       if (existing) {
-        itemIdByKey.set(candidate.canonicalKey, existing.id);
+        itemIdByKey.set(itemLookupKey(candidate), existing.id);
         const patch: { meaning?: string | null; explanation?: string | null } = {};
         if (!existing.meaning && candidate.meaning) patch.meaning = candidate.meaning;
         if (!existing.explanation && candidate.explanation) patch.explanation = candidate.explanation;
@@ -302,19 +302,13 @@ async function buildImportPlan(lesson: LessonImportInput): Promise<ImportPlan> {
       .where(inArray(learningItems.canonicalKey, canonicalKeys))
     : [];
 
-  const existingItemsByKey = new Map(existingItems.map((item) => [item.canonicalKey, item]));
+  const existingItemsByKey = new Map(existingItems.map((item) => [itemLookupKey(item), item]));
   const existingSentencesByText = new Map(existingSentences.map((sentence) => [sentence.normalizedText, sentence]));
-  const conflicts = candidateItems
-    .filter((candidate) => {
-      const existing = existingItemsByKey.get(candidate.canonicalKey);
-      return Boolean(existing && existing.type !== candidate.type);
-    })
-    .map((candidate) => `${candidate.canonicalKey} already exists with a different item type.`);
 
   return {
     sourceHash,
     duplicateImport: Boolean(duplicateImport),
-    validationErrors: conflicts,
+    validationErrors: [],
     lessonPreview: {
       language: lesson.language,
       baseLanguage: lesson.baseLanguage,
@@ -381,13 +375,14 @@ function collectCandidates(lesson: LessonImportInput): CandidateItem[] {
 }
 
 function upsertCandidate(items: Map<string, CandidateItem>, candidate: CandidateItem): void {
-  const existing = items.get(candidate.canonicalKey);
+  const key = itemLookupKey(candidate);
+  const existing = items.get(key);
   if (!existing) {
-    items.set(candidate.canonicalKey, candidate);
+    items.set(key, candidate);
     return;
   }
 
-  items.set(candidate.canonicalKey, {
+  items.set(key, {
     ...existing,
     meaning: existing.meaning ?? candidate.meaning,
     explanation: existing.explanation ?? candidate.explanation
@@ -401,7 +396,7 @@ function toPreviewItems(items: CandidateItem[], existingItemsByKey: Map<string, 
     displayText: candidate.displayText,
     meaning: candidate.meaning,
     explanation: candidate.explanation,
-    status: existingItemsByKey.has(candidate.canonicalKey) ? "existing" : "new"
+    status: existingItemsByKey.has(itemLookupKey(candidate)) ? "existing" : "new"
   }));
 }
 
@@ -427,31 +422,34 @@ function summarizeItemOccurrences(
   for (const sentence of lesson.sentences) {
     for (const word of sentence.words ?? []) {
       const key = buildCanonicalKey(lesson.language, word.lemma ?? word.surface);
-      if (existingItemsByKey.has(key) || seen.has(key)) {
+      const lookupKey = itemLookupKey({ type: "word", canonicalKey: key });
+      if (existingItemsByKey.has(lookupKey) || seen.has(lookupKey)) {
         vocabularyReused += 1;
       } else {
         vocabularyCreated += 1;
-        seen.add(key);
+        seen.add(lookupKey);
       }
     }
 
     for (const grammar of sentence.grammar ?? []) {
       const key = buildCanonicalKey(lesson.language, grammar.pattern);
-      if (existingItemsByKey.has(key) || seen.has(key)) {
+      const lookupKey = itemLookupKey({ type: "grammar", canonicalKey: key });
+      if (existingItemsByKey.has(lookupKey) || seen.has(lookupKey)) {
         grammarReused += 1;
       } else {
         grammarCreated += 1;
-        seen.add(key);
+        seen.add(lookupKey);
       }
     }
 
     for (const chunk of sentence.chunks ?? []) {
       const key = buildCanonicalKey(lesson.language, chunk.surface);
-      if (existingItemsByKey.has(key) || seen.has(key)) {
+      const lookupKey = itemLookupKey({ type: "chunk", canonicalKey: key });
+      if (existingItemsByKey.has(lookupKey) || seen.has(lookupKey)) {
         chunksReused += 1;
       } else {
         chunksCreated += 1;
-        seen.add(key);
+        seen.add(lookupKey);
       }
     }
   }
@@ -494,7 +492,7 @@ async function createSentenceItemLinks({
 
   for (const word of sentence.words ?? []) {
     const key = buildCanonicalKey(language, word.lemma ?? word.surface);
-    const itemId = itemIdByKey.get(key);
+    const itemId = itemIdByKey.get(itemLookupKey({ type: "word", canonicalKey: key }));
     if (!itemId || seen.has(`word:${itemId}:${word.surface}`)) continue;
     seen.add(`word:${itemId}:${word.surface}`);
     const [row] = await tx.insert(sentenceVocabularyLinks).values({
@@ -507,7 +505,7 @@ async function createSentenceItemLinks({
 
   for (const grammar of sentence.grammar ?? []) {
     const key = buildCanonicalKey(language, grammar.pattern);
-    const itemId = itemIdByKey.get(key);
+    const itemId = itemIdByKey.get(itemLookupKey({ type: "grammar", canonicalKey: key }));
     const surfaceText = grammar.surface ?? grammar.pattern;
     if (!itemId || seen.has(`grammar:${itemId}:${surfaceText}`)) continue;
     seen.add(`grammar:${itemId}:${surfaceText}`);
@@ -521,7 +519,7 @@ async function createSentenceItemLinks({
 
   for (const chunk of sentence.chunks ?? []) {
     const key = buildCanonicalKey(language, chunk.surface);
-    const itemId = itemIdByKey.get(key);
+    const itemId = itemIdByKey.get(itemLookupKey({ type: "chunk", canonicalKey: key }));
     if (!itemId || seen.has(`chunk:${itemId}:${chunk.surface}`)) continue;
     seen.add(`chunk:${itemId}:${chunk.surface}`);
     const [row] = await tx.insert(sentenceChunkLinks).values({
@@ -538,21 +536,25 @@ async function createSentenceItemLinks({
 function pickFocusItemId(language: string, sentence: LessonSentenceInput, itemIdByKey: Map<string, string>): string | undefined {
   const word = sentence.words?.[0];
   if (word) {
-    const itemId = itemIdByKey.get(buildCanonicalKey(language, word.lemma ?? word.surface));
+    const itemId = itemIdByKey.get(itemLookupKey({ type: "word", canonicalKey: buildCanonicalKey(language, word.lemma ?? word.surface) }));
     if (itemId) return itemId;
   }
 
   const grammar = sentence.grammar?.[0];
   if (grammar) {
-    const itemId = itemIdByKey.get(buildCanonicalKey(language, grammar.pattern));
+    const itemId = itemIdByKey.get(itemLookupKey({ type: "grammar", canonicalKey: buildCanonicalKey(language, grammar.pattern) }));
     if (itemId) return itemId;
   }
 
   const chunk = sentence.chunks?.[0];
   if (chunk) {
-    const itemId = itemIdByKey.get(buildCanonicalKey(language, chunk.surface));
+    const itemId = itemIdByKey.get(itemLookupKey({ type: "chunk", canonicalKey: buildCanonicalKey(language, chunk.surface) }));
     if (itemId) return itemId;
   }
 
   return undefined;
+}
+
+function itemLookupKey(item: Pick<CandidateItem, "type" | "canonicalKey">): string {
+  return `${item.type}:${item.canonicalKey}`;
 }
