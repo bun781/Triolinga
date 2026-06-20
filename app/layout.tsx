@@ -3,13 +3,13 @@ import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Habitz",
+  title: "Fydor",
   description: "Language study — lesson builder, sentence forge, vocabulary review.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Habitz"
+    title: "Fydor"
   },
   icons: {
     icon: [

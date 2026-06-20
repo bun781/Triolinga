@@ -187,6 +187,7 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
           cardIndex={cardIndex}
           totalCards={total}
           lessonTitle={lesson.title}
+          language={lesson.language}
           allSentences={lesson.sentences}
           reveal={reveal}
           sessionFamiliarity={sessionFamiliarity}

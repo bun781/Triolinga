@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ItemFamiliarity, RevealState, SelectedItem, StudySentence } from "@/lib/imported-content/types";
 import { getHint } from "@/lib/imported-content/study-utils";
+import { useSpeech } from "@/lib/useSpeech";
 import { InteractiveToken } from "./InteractiveToken";
 import { ProgressiveRevealControls } from "./ProgressiveRevealControls";
 import { RelatedSentences } from "./RelatedSentences";
@@ -13,6 +14,7 @@ interface Props {
   cardIndex: number;
   totalCards: number;
   lessonTitle: string;
+  language: string;
   allSentences: StudySentence[];
   reveal: RevealState;
   sessionFamiliarity: Map<string, ItemFamiliarity>;
@@ -38,6 +40,7 @@ export function SentenceFlashcard({
   cardIndex,
   totalCards,
   lessonTitle,
+  language,
   allSentences,
   reveal,
   sessionFamiliarity,
@@ -51,21 +54,30 @@ export function SentenceFlashcard({
   onNext
 }: Props) {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const speak = useSpeech(language);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "a" || e.key === "A") speak(sentence.text);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [speak, sentence.text]);
 
   const progress = ((cardIndex + 1) / totalCards) * 100;
   const hint = reveal.hint ? getHint(sentence) : null;
 
   function toggleItem(item: SelectedItem) {
+    const surface =
+      item.kind === "word" ? item.data.surface :
+      item.kind === "grammar" ? item.data.surfaceText :
+      item.data.surfaceText;
+    speak(surface);
     setSelectedItem((prev) => {
       if (!prev || prev.kind !== item.kind) return item;
-      const prevKey =
-        prev.kind === "word" ? prev.data.canonicalKey :
-        prev.kind === "grammar" ? prev.data.canonicalKey :
-        prev.data.canonicalKey;
-      const itemKey =
-        item.kind === "word" ? item.data.canonicalKey :
-        item.kind === "grammar" ? item.data.canonicalKey :
-        item.data.canonicalKey;
+      const prevKey = prev.data.canonicalKey;
+      const itemKey = item.data.canonicalKey;
       return prevKey === itemKey ? null : item;
     });
   }
@@ -77,7 +89,7 @@ export function SentenceFlashcard({
 
   const handleAudio = sentence.audioUrl
     ? () => { new Audio(sentence.audioUrl!).play().catch(() => undefined); }
-    : undefined;
+    : () => speak(sentence.text);
 
   return (
     <div className="flashcard card stack">

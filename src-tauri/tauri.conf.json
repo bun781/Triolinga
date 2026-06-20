@@ -1,0 +1,33 @@
+{
+  "productName": "Fydor",
+  "version": "0.1.0",
+  "identifier": "com.fydor.fydor",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3001",
+    "frontendDist": "frontend-dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Fydor",
+        "url": "http://localhost:3001",
+        "width": 1000,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg"],
+    "resources": {
+      "next-standalone/": ".next/standalone/"
+    }
+  }
+}

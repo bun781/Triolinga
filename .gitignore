@@ -1,5 +1,6 @@
 node_modules/
 .next/
+out/
 test-results/
 playwright-report/
 coverage/
@@ -7,6 +8,12 @@ coverage/
 .env
 .env*.local
 !.env.example
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/next-standalone/*
+!src-tauri/next-standalone/.gitkeep
+dist/
 
 # Old PWA generated files (from workbox builds)
 public/workbox-*.js

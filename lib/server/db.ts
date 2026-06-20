@@ -4,7 +4,7 @@ import * as schema from "@/db/schema";
 import path from "path";
 import fs from "fs";
 
-const DATA_DIR = path.join(process.cwd(), ".pglite-data");
+const DATA_DIR = process.env.PGLITE_DATA_DIR ?? path.join(process.cwd(), ".pglite-data");
 
 // Singleton — reuse across hot reloads in dev
 const g = globalThis as typeof globalThis & {
@@ -12,6 +12,7 @@ const g = globalThis as typeof globalThis & {
   _pgliteReady?: Promise<void>;
   _drizzle?: ReturnType<typeof drizzle<typeof schema>>;
 };
+type AppDb = ReturnType<typeof drizzle<typeof schema>>;
 
 function readMigrations(): Array<{ tag: string; sql: string[] }> {
   const journalPath = path.join(process.cwd(), "db/migrations/meta/_journal.json");
@@ -59,15 +60,24 @@ async function runMigrations(client: PGlite): Promise<void> {
   }
 }
 
-if (!g._pglite) {
+function initDb(): AppDb {
+  if (g._drizzle) return g._drizzle;
+
   g._pglite = new PGlite(DATA_DIR);
   g._drizzle = drizzle(g._pglite, { schema });
   g._pgliteReady = runMigrations(g._pglite);
+
+  return g._drizzle;
 }
 
-export const db = g._drizzle!;
+export const db = new Proxy({} as AppDb, {
+  get(_target, prop, receiver) {
+    return Reflect.get(initDb(), prop, receiver);
+  }
+});
 
 export async function getDb() {
+  const database = initDb();
   await g._pgliteReady;
-  return db;
+  return database;
 }
