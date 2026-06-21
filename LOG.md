@@ -1,5 +1,38 @@
 # Lesson Import System Log
 
+## Review System Addendum
+
+The new sentence review tab lives at `/review` and uses a separate queue strategy from Sentence Forge so it can be swapped for SRS later without changing the UI.
+
+### Files Added
+
+- `app/api/review/route.ts`
+- `app/review/page.tsx`
+- `components/review/ReviewControls.tsx`
+- `components/review/ReviewDeck.tsx`
+- `components/review/ReviewSentenceCard.tsx`
+- `db/migrations/0002_review_system.sql`
+- `docs/review-system.md`
+- `lib/review/algorithm.ts`
+- `lib/review/reviewData.ts`
+- `lib/review/types.ts`
+- `lib/review/useReviewDeck.ts`
+- `tests/unit/review.test.ts`
+
+### Schema Changes
+
+- `sentences.review_state`
+- `sentences.review_streak`
+- `sentences.reviewed_at`
+
+### Behavior
+
+- Left arrow and Not Remembered mark a sentence as forgotten.
+- Right arrow and Remembered mark a sentence as remembered.
+- Forgotten items are surfaced first in the next queue cycle.
+- Remembered items drift back as their streak increases.
+- Shuffle rebuilds the queue without changing the underlying state fields.
+
 ## Files Changed
 
 - `app/admin/imports/page.tsx`
@@ -80,4 +113,3 @@ Existing tables reused:
 - Add overwrite mode for controlled content updates.
 - Add SRS queues for standalone vocabulary, grammar, and chunk study modes.
 - Add quiz generators that reuse the same canonical sentence/item/link records.
-

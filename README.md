@@ -1,6 +1,8 @@
 # Habitz Sentence Forge
 
-A focused language-learning app for importing lesson JSON, generating Sentence Forge drills, and scheduling self-graded review.
+A focused language-learning app for importing lesson JSON, generating Sentence Forge drills, and running a dedicated sentence review tab.
+
+Fydor is free for the people: open access, no paywall, and no subscriptions.
 
 ## Stack
 
@@ -15,9 +17,16 @@ A focused language-learning app for importing lesson JSON, generating Sentence F
 2. Validate and preview sentences, focus items, tokens, warnings, and detected duplicates.
 3. Approve the import.
 4. Save lessons, sentences, tokens, canonical learning items, links, drills, and review states.
-5. Study due drills at `/study/sentence-forge` or `/review`.
-6. Self-grade with Failed, Hard, Correct, or Easy.
-7. Update the next review date.
+5. Study due drills at `/study/sentence-forge` or review sentences at `/review`.
+6. Self-grade Sentence Forge with Failed, Hard, Correct, or Easy.
+7. Mark review sentences as Remembered or Not Remembered.
+8. Update the next review date or sentence review state immediately.
+
+## What Makes It Different
+
+- Built as an open-access learning tool.
+- Designed to stay simple, local-friendly, and focused on study rather than monetization.
+- Surfaces imported lessons, drills, and review state in one workflow.
 
 ## Local Setup
 

@@ -17,7 +17,9 @@ const eslintConfig = [
     ignores: [
       ".next/**",
       "node_modules/**",
-      "next-env.d.ts"
+      "next-env.d.ts",
+      "src-tauri/next-standalone/**",
+      "src-tauri/target/**"
     ]
   },
   ...compat.extends("next/core-web-vitals", "next/typescript")

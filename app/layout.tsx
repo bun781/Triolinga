@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Fydor",
-  description: "Language study — lesson builder, sentence forge, vocabulary review.",
+  description: "Language study — lesson builder, sentence forge, vocabulary review. Free for the people.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const reviewRatingEnum = pgEnum("review_rating", ["easy", "correct", "hard", "failed"]);
+export const sentenceReviewStateEnum = pgEnum("sentence_review_state", ["unknown", "remembered", "forgotten"]);
 export const learningItemTypeEnum = pgEnum("learning_item_type", ["word", "grammar", "chunk"]);
 export const sentenceDrillTypeEnum = pgEnum("sentence_drill_type", [
   "recall",
@@ -65,6 +66,9 @@ export const sentences = pgTable("sentences", {
   text: text("text").notNull(),
   normalizedText: text("normalized_text").notNull(),
   translation: text("translation").notNull(),
+  reviewState: sentenceReviewStateEnum("review_state").notNull().default("unknown"),
+  reviewStreak: integer("review_streak").notNull().default(0),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   focusCanonicalKey: text("focus_canonical_key"),
   focusDisplayText: text("focus_display_text"),
   focusMeaning: text("focus_meaning"),

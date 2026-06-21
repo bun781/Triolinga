@@ -16,7 +16,7 @@ import {
 } from "@/db/schema";
 
 const mockDb: MockDb = createMockDb(createStore());
-vi.mock("@/lib/server/db", () => ({ db: mockDb }));
+vi.mock("@/lib/server/db", () => ({ db: mockDb, getDb: async () => mockDb }));
 
 const importLessonModule = await import("@/lib/language/importLesson");
 const { importApprovedLesson, buildImportPreview } = importLessonModule;

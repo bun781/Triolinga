@@ -18,6 +18,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">Fydor</div>
+        <div className="sidebar-note" aria-label="Project note">
+          <span className="pill pill-accent">Free for the people</span>
+          <p>Open access by design. No paywall, no subscriptions.</p>
+        </div>
         <nav aria-label="Primary navigation">
           {navLinks.map(({ href, label }) => (
             <Link

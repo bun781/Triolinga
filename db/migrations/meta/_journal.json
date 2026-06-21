@@ -15,6 +15,13 @@
       "when": 1750428000000,
       "tag": "0001_schema_upgrades",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781969759000,
+      "tag": "0002_review_system",
+      "breakpoints": true
     }
   ]
 }
