@@ -411,6 +411,13 @@ textarea.input {
 
 /* ── Import help / language browser ─────────────────────── */
 
+.import-help-toggle {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  margin-top: 16px;
+}
+
 .import-help-panel,
 .language-browser {
   background:
@@ -923,6 +930,11 @@ textarea.input {
 
 .action-bar {
   margin-top: 16px;
+}
+
+.import-action-bar {
+  margin-bottom: 16px;
+  margin-top: -16px;
 }
 
 .grade-grid {

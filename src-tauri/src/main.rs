@@ -20,13 +20,24 @@ fn node_binary() -> &'static str {
 }
 
 #[cfg(not(debug_assertions))]
-fn wait_for_server(url: &str, max_attempts: u32) {
+fn available_port() -> u16 {
+    std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("failed to bind an available localhost port")
+        .local_addr()
+        .expect("failed to read local server address")
+        .port()
+}
+
+#[cfg(not(debug_assertions))]
+fn wait_for_server(url: &str, max_attempts: u32) -> bool {
     for _ in 0..max_attempts {
         if std::net::TcpStream::connect(url).is_ok() {
-            return;
+            return true;
         }
         thread::sleep(Duration::from_millis(500));
     }
+
+    false
 }
 
 fn main() {
@@ -40,6 +51,7 @@ fn main() {
 
             #[cfg(not(debug_assertions))]
             {
+                let window = app.get_webview_window("main").unwrap();
                 let resource_dir = app
                     .path()
                     .resource_dir()
@@ -53,16 +65,24 @@ fn main() {
                     .join("pglite");
                 std::fs::create_dir_all(&data_dir).expect("failed to create PGlite data dir");
 
+                let port = available_port();
+                let server_addr = format!("127.0.0.1:{port}");
+                let server_url = format!("http://{server_addr}/");
+
                 std::process::Command::new(node_binary())
                     .arg(&server_js)
                     .current_dir(&server_dir)
-                    .env("PORT", "3001")
+                    .env("PORT", port.to_string())
                     .env("HOSTNAME", "127.0.0.1")
                     .env("PGLITE_DATA_DIR", &data_dir)
                     .spawn()
                     .expect("failed to spawn Next.js server");
 
-                wait_for_server("127.0.0.1:3001", 40);
+                if wait_for_server(&server_addr, 40) {
+                    window
+                        .navigate(tauri::Url::parse(&server_url).expect("invalid server URL"))
+                        .expect("failed to navigate to Next.js server");
+                }
             }
 
             Ok(())

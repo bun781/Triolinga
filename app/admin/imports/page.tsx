@@ -398,6 +398,26 @@ export default function LessonImportsPage() {
         </button>
       </div>
 
+      <section className="card action-bar import-action-bar">
+        <div>
+          <strong>{lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}</strong>
+          <p className="muted">Validation checks surfaces before the lesson is saved.</p>
+        </div>
+        <div className="row compact-row">
+          <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("validate")}>
+            Check lesson
+          </button>
+          <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("preview")}>
+            <Upload size={18} />
+            {loading ? "Checking" : "Preview lesson"}
+          </button>
+          <button className="button" type="button" disabled={importing} onClick={importLesson}>
+            <Save size={18} />
+            {importing ? "Saving" : "Save lesson"}
+          </button>
+        </div>
+      </section>
+
       {mode === "builder" ? (
         <div className="lesson-builder">
           <section className="builder-layout">
@@ -615,26 +635,6 @@ export default function LessonImportsPage() {
       )}
 
       <ImportHelpPanel />
-
-      <section className="card action-bar">
-        <div>
-          <strong>{lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}</strong>
-          <p className="muted">Validation checks surfaces before the lesson is saved.</p>
-        </div>
-        <div className="row compact-row">
-          <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("validate")}>
-            Check lesson
-          </button>
-          <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("preview")}>
-            <Upload size={18} />
-            {loading ? "Checking" : "Preview lesson"}
-          </button>
-          <button className="button" type="button" disabled={importing} onClick={importLesson}>
-            <Save size={18} />
-            {importing ? "Saving" : "Save lesson"}
-          </button>
-        </div>
-      </section>
 
       {errors.length ? (
         <section className="card stack error-card">

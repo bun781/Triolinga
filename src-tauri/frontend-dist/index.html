@@ -3,6 +3,70 @@
   <head>
     <meta charset="utf-8" />
     <title>Fydor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        align-items: center;
+        background: linear-gradient(180deg, #faf9f7 0%, #f2efe9 100%);
+        color: #1c1917;
+        display: grid;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        justify-items: center;
+      }
+
+      .shell {
+        max-width: 32rem;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .badge {
+        display: inline-block;
+        border: 1px solid #e7e2da;
+        border-radius: 999px;
+        color: #78716c;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        margin-bottom: 1rem;
+        padding: 0.35rem 0.75rem;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 2rem;
+        font-weight: 400;
+        margin: 0 0 0.75rem;
+      }
+
+      p {
+        color: #78716c;
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      .dots {
+        margin-top: 1.5rem;
+        letter-spacing: 0.2em;
+      }
+    </style>
   </head>
-  <body></body>
+  <body>
+    <main class="shell" aria-live="polite">
+      <div class="badge">Starting Fydor</div>
+      <h1>Launching the lesson workspace</h1>
+      <p>If the app stays here for more than a moment, the Next.js server is still booting.</p>
+      <p class="dots">···</p>
+    </main>
+  </body>
 </html>

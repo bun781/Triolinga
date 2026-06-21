@@ -5,14 +5,14 @@
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:3001",
+    "devUrl": "http://127.0.0.1:3001",
     "frontendDist": "frontend-dist"
   },
   "app": {
     "windows": [
       {
         "title": "Fydor",
-        "url": "http://localhost:3001",
+        "url": "/",
         "width": 1000,
         "height": 800,
         "resizable": true,

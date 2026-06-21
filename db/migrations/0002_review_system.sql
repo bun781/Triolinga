@@ -1,3 +1,9 @@
+DO $$ BEGIN
+ CREATE TYPE "public"."sentence_review_state" AS ENUM('unknown', 'remembered', 'forgotten');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 ALTER TABLE "sentences" ADD COLUMN IF NOT EXISTS "review_state" "sentence_review_state" DEFAULT 'unknown' NOT NULL;
 --> statement-breakpoint
 ALTER TABLE "sentences" ADD COLUMN IF NOT EXISTS "review_streak" integer DEFAULT 0 NOT NULL;
