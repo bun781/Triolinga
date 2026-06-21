@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GuidedTour } from "@/components/system/GuidedTour";
+import { GuidedTour, replayGuidedTour } from "@/components/system/GuidedTour";
 
 const navLinks: Array<{ href: Route<string>; label: string }> = [
   { href: "/admin/imports", label: "Lesson Builder" },
@@ -20,6 +20,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-note" aria-label="Project note">
           <span className="pill pill-accent">Free for the people</span>
           <p>Open access by design. No paywall, no subscriptions.</p>
+          <button type="button" className="button secondary sidebar-replay" onClick={replayGuidedTour}>
+            Replay tutorial
+          </button>
         </div>
         <nav aria-label="Primary navigation">
           {navLinks.map(({ href, label }) => (

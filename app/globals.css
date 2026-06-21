@@ -97,6 +97,11 @@ button, input, textarea, select {
   line-height: 1.5;
 }
 
+.sidebar-replay {
+  justify-content: center;
+  width: 100%;
+}
+
 .sidebar nav {
   display: flex;
   flex-direction: column;

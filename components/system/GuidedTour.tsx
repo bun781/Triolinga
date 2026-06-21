@@ -22,6 +22,7 @@ interface TourTargetState {
 }
 
 const TOUR_STATE_KEY = "fydor-guided-tour-state-v1";
+const TOUR_REPLAY_EVENT = "fydor-guided-tour:replay";
 
 const tourSteps: TourStep[] = [
   {
@@ -104,6 +105,28 @@ export function GuidedTour() {
       setCompleted(false);
     }
   }, []);
+
+  useEffect(() => {
+    function handleReplayTour() {
+      const firstStep = tourSteps[0];
+      try {
+        window.localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({ completed: false, stepIndex: 0 }));
+      } catch {
+        // Ignore storage failures and keep the in-memory state working.
+      }
+
+      setCompleted(false);
+      setActiveStepIndex(0);
+      setTarget(null);
+
+      if (pathname !== firstStep.route) {
+        router.push(firstStep.route);
+      }
+    }
+
+    window.addEventListener(TOUR_REPLAY_EVENT, handleReplayTour);
+    return () => window.removeEventListener(TOUR_REPLAY_EVENT, handleReplayTour);
+  }, [pathname, router]);
 
   useEffect(() => {
     if (!mounted || activeStepIndex === null) return;
@@ -309,4 +332,14 @@ function buildSpotlightStyle(rect: DOMRect): CSSProperties {
     width: rect.width + 20,
     height: rect.height + 20
   };
+}
+
+export function replayGuidedTour() {
+  try {
+    window.localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({ completed: false, stepIndex: 0 }));
+  } catch {
+    // Ignore storage failures and keep the replay action best-effort.
+  }
+
+  window.dispatchEvent(new Event(TOUR_REPLAY_EVENT));
 }
