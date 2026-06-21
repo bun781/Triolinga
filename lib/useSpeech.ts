@@ -1,18 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
+import { useSpeechService } from "@/lib/speech/useSpeechService";
 
 export function useSpeech(language: string) {
-  const langRef = useRef(language);
-  useEffect(() => { langRef.current = language; }, [language]);
+  const speech = useSpeechService(language);
 
-  const speak = useCallback((text: string) => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langRef.current;
-    window.speechSynthesis.speak(utterance);
-  }, []);
+  const speak = useCallback((text: string) => speech.speak(text), [speech]);
 
   return speak;
 }

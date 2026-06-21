@@ -15,6 +15,7 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ImportHelpPanel } from "@/components/language/ImportHelpPanel";
 import { ImportPreview } from "@/components/language/ImportPreview";
+import { Tooltip } from "@/components/ui/Tooltip";
 import type {
   LessonChunkInput,
   LessonGrammarInput,
@@ -434,16 +435,17 @@ export default function LessonImportsPage() {
                     <h2>Sentence {activeSentenceIndex + 1}</h2>
                     {selection && <p className="muted">Selected: <strong>{selection.surface}</strong></p>}
                   </div>
-                  <button
-                    className="icon-button"
-                    type="button"
-                    title="Remove sentence"
-                    aria-label="Remove sentence"
-                    disabled={lesson.sentences.length === 1}
-                    onClick={() => removeSentence(activeSentenceIndex)}
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <Tooltip content="Remove this sentence.">
+                    <button
+                      className="icon-button"
+                      type="button"
+                      aria-label="Remove sentence"
+                      disabled={lesson.sentences.length === 1}
+                      onClick={() => removeSentence(activeSentenceIndex)}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </Tooltip>
                 </div>
                 <div className="selectable-sentence" onMouseUp={captureSelection} onKeyUp={captureSelection}>
                   {activeSentence.text ? (
@@ -589,9 +591,11 @@ export default function LessonImportsPage() {
                           <strong>{annotation.label}</strong>
                           {annotation.detail ? <p className="muted">{annotation.detail}</p> : null}
                         </div>
-                        <button className="icon-button" type="button" title="Remove annotation" aria-label="Remove annotation" onClick={() => removeAnnotation(annotation.kind, annotation.index)}>
-                          <Trash2 size={17} />
-                        </button>
+                        <Tooltip content="Remove this annotation.">
+                          <button className="icon-button" type="button" aria-label="Remove annotation" onClick={() => removeAnnotation(annotation.kind, annotation.index)}>
+                            <Trash2 size={17} />
+                          </button>
+                        </Tooltip>
                       </div>
                     ))}
                   </div>

@@ -546,6 +546,57 @@ textarea.input {
   color: var(--warn);
 }
 
+/* ── Tooltip ─────────────────────────────────────────────── */
+
+.tooltip-wrap {
+  display: inline-flex;
+  position: relative;
+}
+
+.tooltip-bubble {
+  background: #1c1917;
+  border-radius: 4px;
+  box-shadow: 0 12px 32px rgba(28, 25, 23, 0.16);
+  color: #f5f5f4;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  left: 50%;
+  line-height: 1.45;
+  max-width: 240px;
+  opacity: 0;
+  padding: 9px 11px;
+  pointer-events: none;
+  position: absolute;
+  text-align: left;
+  transform: translateX(-50%) translateY(-3px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  width: max-content;
+  z-index: 20;
+}
+
+.tooltip-top .tooltip-bubble {
+  bottom: calc(100% + 8px);
+}
+
+.tooltip-bottom .tooltip-bubble {
+  top: calc(100% + 8px);
+}
+
+.tooltip-wrap:hover .tooltip-bubble,
+.tooltip-wrap:focus-within .tooltip-bubble {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-stack {
+  display: grid;
+  gap: 2px;
+}
+
+.tooltip-stack strong {
+  font-weight: 600;
+}
+
 /* ── Interactive sentence ───────────────────────────────── */
 
 .sentence-text,
@@ -587,35 +638,6 @@ textarea.input {
 .token-chip:focus {
   border-color: var(--ink);
   outline: none;
-}
-
-.token-popover {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  box-shadow: 0 8px 28px rgba(28, 25, 23, 0.10);
-  display: none;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 13px;
-  gap: 4px;
-  left: 0;
-  line-height: 1.5;
-  min-width: 200px;
-  padding: 12px 14px;
-  position: absolute;
-  text-align: left;
-  top: calc(100% + 6px);
-  z-index: 5;
-}
-
-.token-popover span,
-.token-popover strong {
-  display: block;
-}
-
-.token-chip:hover .token-popover,
-.token-chip:focus .token-popover {
-  display: grid;
 }
 
 .inline-tags {

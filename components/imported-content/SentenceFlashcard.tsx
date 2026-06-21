@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ItemFamiliarity, RevealState, SelectedItem, StudySentence } from "@/lib/imported-content/types";
 import { getHint } from "@/lib/imported-content/study-utils";
 import { useSpeech } from "@/lib/useSpeech";
@@ -8,6 +8,7 @@ import { InteractiveToken } from "./InteractiveToken";
 import { ProgressiveRevealControls } from "./ProgressiveRevealControls";
 import { RelatedSentences } from "./RelatedSentences";
 import { StudyDetailsPanel } from "./StudyDetailsPanel";
+import { AudioButton } from "@/components/ui/AudioButton";
 
 interface Props {
   sentence: StudySentence;
@@ -56,15 +57,6 @@ export function SentenceFlashcard({
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const speak = useSpeech(language);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === "a" || e.key === "A") speak(sentence.text);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [speak, sentence.text]);
-
   const progress = ((cardIndex + 1) / totalCards) * 100;
   const hint = reveal.hint ? getHint(sentence) : null;
 
@@ -86,10 +78,6 @@ export function SentenceFlashcard({
     if (!selectedItem || selectedItem.kind !== kind) return false;
     return selectedItem.data.canonicalKey === key;
   }
-
-  const handleAudio = sentence.audioUrl
-    ? () => { new Audio(sentence.audioUrl!).play().catch(() => undefined); }
-    : () => speak(sentence.text);
 
   return (
     <div className="flashcard card stack">
@@ -173,13 +161,13 @@ export function SentenceFlashcard({
       {/* Reveal controls */}
       <ProgressiveRevealControls
         reveal={reveal}
-        hasAudio={!!sentence.audioUrl}
         onHint={onToggleHint}
         onWordMeanings={onToggleWordMeanings}
         onGrammar={onToggleGrammar}
         onTranslation={onRevealTranslation}
-        onAudio={handleAudio}
       />
+
+      <AudioButton sentence={sentence.text} language={language} compact />
 
       {/* Translation */}
       <div

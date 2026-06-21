@@ -7,7 +7,7 @@ import type {
   StudyLesson,
   StudyLessonMeta
 } from "@/lib/imported-content/types";
-import { formatLanguageLabel, groupLessonsByLanguage } from "@/lib/language/importResources";
+import { groupLessonsByLanguage } from "@/lib/language/importResources";
 import { CheckpointQuiz } from "./CheckpointQuiz";
 import { SentenceFlashcard } from "./SentenceFlashcard";
 

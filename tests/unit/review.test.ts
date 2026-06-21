@@ -16,6 +16,7 @@ describe("review state updates", () => {
     const updated = applyReviewDecision(
       {
         id: "sentence-1",
+        language: "ko",
         text: "안녕하세요.",
         translation: "Hello.",
         reviewState: "unknown",
@@ -35,6 +36,7 @@ describe("review state updates", () => {
     const updated = applyReviewDecision(
       {
         id: "sentence-1",
+        language: "ko",
         text: "안녕하세요.",
         translation: "Hello.",
         reviewState: "remembered",
@@ -51,43 +53,48 @@ describe("review state updates", () => {
 
 describe("review algorithm", () => {
   const sentences: ReviewSentenceRow[] = [
-    {
-      id: "forgotten",
-      text: "Forgotten",
-      translation: "Forgotten",
-      reviewState: "forgotten",
+      {
+        id: "forgotten",
+        language: "ko",
+        text: "Forgotten",
+        translation: "Forgotten",
+        reviewState: "forgotten",
       reviewStreak: 0,
       reviewedAt: null
     },
-    {
-      id: "unknown-a",
-      text: "Unknown A",
-      translation: "Unknown A",
-      reviewState: "unknown",
+      {
+        id: "unknown-a",
+        language: "ko",
+        text: "Unknown A",
+        translation: "Unknown A",
+        reviewState: "unknown",
       reviewStreak: 0,
       reviewedAt: null
     },
-    {
-      id: "unknown-b",
-      text: "Unknown B",
-      translation: "Unknown B",
-      reviewState: "unknown",
+      {
+        id: "unknown-b",
+        language: "ko",
+        text: "Unknown B",
+        translation: "Unknown B",
+        reviewState: "unknown",
       reviewStreak: 0,
       reviewedAt: null
     },
-    {
-      id: "remembered-low",
-      text: "Remembered low",
-      translation: "Remembered low",
-      reviewState: "remembered",
+      {
+        id: "remembered-low",
+        language: "ko",
+        text: "Remembered low",
+        translation: "Remembered low",
+        reviewState: "remembered",
       reviewStreak: 1,
       reviewedAt: null
     },
-    {
-      id: "remembered-high",
-      text: "Remembered high",
-      translation: "Remembered high",
-      reviewState: "remembered",
+      {
+        id: "remembered-high",
+        language: "ko",
+        text: "Remembered high",
+        translation: "Remembered high",
+        reviewState: "remembered",
       reviewStreak: 4,
       reviewedAt: null
     }
@@ -109,10 +116,10 @@ describe("review algorithm", () => {
 
   it("changes order when the shuffle seed changes", () => {
     const shuffledSentences: ReviewSentenceRow[] = [
-      { id: "one", text: "One", translation: "One", reviewState: "unknown", reviewStreak: 0, reviewedAt: null },
-      { id: "two", text: "Two", translation: "Two", reviewState: "unknown", reviewStreak: 0, reviewedAt: null },
-      { id: "three", text: "Three", translation: "Three", reviewState: "unknown", reviewStreak: 0, reviewedAt: null },
-      { id: "four", text: "Four", translation: "Four", reviewState: "unknown", reviewStreak: 0, reviewedAt: null }
+      { id: "one", language: "ko", text: "One", translation: "One", reviewState: "unknown", reviewStreak: 0, reviewedAt: null },
+      { id: "two", language: "ko", text: "Two", translation: "Two", reviewState: "unknown", reviewStreak: 0, reviewedAt: null },
+      { id: "three", language: "ko", text: "Three", translation: "Three", reviewState: "unknown", reviewStreak: 0, reviewedAt: null },
+      { id: "four", language: "ko", text: "Four", translation: "Four", reviewState: "unknown", reviewStreak: 0, reviewedAt: null }
     ];
 
     const first = buildReviewQueue(shuffledSentences, 1);

@@ -3,6 +3,7 @@ export type ReviewDecision = "remembered" | "forgotten";
 
 export interface ReviewSentence {
   id: string;
+  language: string;
   text: string;
   translation: string;
   reviewState: SentenceReviewState;
@@ -12,6 +13,7 @@ export interface ReviewSentence {
 
 export interface ReviewSentenceRow {
   id: string;
+  language: string;
   text: string;
   translation: string;
   reviewState: SentenceReviewState;

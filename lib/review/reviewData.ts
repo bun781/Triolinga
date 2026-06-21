@@ -9,6 +9,7 @@ export async function getReviewSentences(): Promise<ReviewSentence[]> {
   const rows = await db
     .select({
       id: sentences.id,
+      language: sentences.language,
       text: sentences.text,
       translation: sentences.translation,
       reviewState: sentences.reviewState,
@@ -20,6 +21,7 @@ export async function getReviewSentences(): Promise<ReviewSentence[]> {
 
   return rows.map((row) => ({
     id: row.id,
+    language: row.language,
     text: row.text,
     translation: row.translation,
     reviewState: row.reviewState,
@@ -36,6 +38,7 @@ export async function updateReviewSentenceState(
   const [current] = await db
     .select({
       id: sentences.id,
+      language: sentences.language,
       text: sentences.text,
       translation: sentences.translation,
       reviewState: sentences.reviewState,

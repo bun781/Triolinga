@@ -1,15 +1,14 @@
 "use client";
 
 import type { RevealState } from "@/lib/imported-content/types";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface Props {
   reveal: RevealState;
-  hasAudio: boolean;
   onHint: () => void;
   onWordMeanings: () => void;
   onGrammar: () => void;
   onTranslation: () => void;
-  onAudio: () => void;
 }
 
 export function ProgressiveRevealControls({
@@ -17,46 +16,46 @@ export function ProgressiveRevealControls({
   onHint,
   onWordMeanings,
   onGrammar,
-  onTranslation,
-  onAudio
+  onTranslation
 }: Props) {
   return (
     <div className="reveal-controls">
-      <button
-        type="button"
-        className={`button secondary${reveal.hint ? " active" : ""}`}
-        onClick={onHint}
-        title="H"
-      >
-        Hint
-      </button>
-      <button
-        type="button"
-        className={`button secondary${reveal.wordMeanings ? " active" : ""}`}
-        onClick={onWordMeanings}
-        title="W"
-      >
-        Words
-      </button>
-      <button
-        type="button"
-        className={`button secondary${reveal.grammar ? " active" : ""}`}
-        onClick={onGrammar}
-        title="G"
-      >
-        Grammar
-      </button>
-      <button
-        type="button"
-        className={`button secondary${reveal.translation ? " active" : ""}`}
-        onClick={onTranslation}
-        title="Space"
-      >
-        Translation
-      </button>
-      <button type="button" className="button secondary icon-only" onClick={onAudio} title="A — Play audio" aria-label="Play audio">
-        ♪
-      </button>
+      <Tooltip content="Show or hide hints. Shortcut: H.">
+        <button
+          type="button"
+          className={`button secondary${reveal.hint ? " active" : ""}`}
+          onClick={onHint}
+        >
+          Hint
+        </button>
+      </Tooltip>
+      <Tooltip content="Show or hide word meanings. Shortcut: W.">
+        <button
+          type="button"
+          className={`button secondary${reveal.wordMeanings ? " active" : ""}`}
+          onClick={onWordMeanings}
+        >
+          Words
+        </button>
+      </Tooltip>
+      <Tooltip content="Show or hide grammar notes. Shortcut: G.">
+        <button
+          type="button"
+          className={`button secondary${reveal.grammar ? " active" : ""}`}
+          onClick={onGrammar}
+        >
+          Grammar
+        </button>
+      </Tooltip>
+      <Tooltip content="Reveal translation. Shortcut: Space.">
+        <button
+          type="button"
+          className={`button secondary${reveal.translation ? " active" : ""}`}
+          onClick={onTranslation}
+        >
+          Translation
+        </button>
+      </Tooltip>
     </div>
   );
 }

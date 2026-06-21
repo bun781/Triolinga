@@ -1,6 +1,7 @@
 "use client";
 
 import type { ItemFamiliarity } from "@/lib/imported-content/types";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 interface Props {
   surface: string;
@@ -36,14 +37,20 @@ export function InteractiveToken({
 
   return (
     <div className="interactive-token-wrap">
-      <button type="button" className={classes} onClick={onClick} aria-pressed={isSelected}>
-        <span>{surface}</span>
-        <span className="token-popover">
-          <strong>{displayText ?? surface}</strong>
-          {meaning ? <span>{meaning}</span> : null}
-          {explanation ? <span className="muted">{explanation}</span> : null}
-        </span>
-      </button>
+      <Tooltip
+        placement="bottom"
+        content={
+          <div className="tooltip-stack">
+            <strong>{displayText ?? surface}</strong>
+            {meaning ? <span>{meaning}</span> : null}
+            {explanation ? <span className="muted">{explanation}</span> : null}
+          </div>
+        }
+      >
+        <button type="button" className={classes} onClick={onClick} aria-pressed={isSelected}>
+          <span>{surface}</span>
+        </button>
+      </Tooltip>
       {showMeaning && meaning ? <span className="token-meaning muted">{meaning}</span> : null}
     </div>
   );

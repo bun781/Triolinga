@@ -4,6 +4,7 @@ import React from "react";
 import { Check, Copy, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { importGuideSections, importPromptTemplates } from "@/lib/language/importResources";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 type HelpTab = "guide" | "prompts";
 
@@ -85,10 +86,12 @@ export function ImportHelpPanel() {
                   <h3>{template.title}</h3>
                   <p className="muted">{template.description}</p>
                 </div>
-                <button className="button secondary" type="button" onClick={() => void copyPrompt(template.prompt, template.id)}>
-                  {copiedPromptId === template.id ? <Check size={16} /> : <Copy size={16} />}
-                  {copiedPromptId === template.id ? "Copied" : "Copy"}
-                </button>
+                <Tooltip content="Copy this prompt template.">
+                  <button className="button secondary" type="button" onClick={() => void copyPrompt(template.prompt, template.id)}>
+                    {copiedPromptId === template.id ? <Check size={16} /> : <Copy size={16} />}
+                    {copiedPromptId === template.id ? "Copied" : "Copy"}
+                  </button>
+                </Tooltip>
               </div>
               <pre className="summary-json help-code">{template.prompt}</pre>
             </article>

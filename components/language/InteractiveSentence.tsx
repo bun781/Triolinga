@@ -1,5 +1,7 @@
 "use client";
 
+import { Tooltip } from "@/components/ui/Tooltip";
+
 interface InteractiveSentenceToken {
   id?: string;
   text: string;
@@ -23,16 +25,23 @@ export function InteractiveSentence({ sentence, tokens }: InteractiveSentencePro
   return (
     <div className="interactive-sentence" aria-label={sentence}>
       {tokens.map((token, index) => (
-        <button className="token-chip" type="button" key={token.id ?? `${token.text}-${index}`}>
-          <span>{token.text}</span>
-          <span className="token-popover">
-            <strong>{token.text}</strong>
-            {token.meaning ? <span>{token.meaning}</span> : null}
-            {token.explanation ? <span>{token.explanation}</span> : null}
-            {token.commonMistakes?.length ? <span>{token.commonMistakes.join("; ")}</span> : null}
-            {token.learningItemId ? <span>{token.canonicalKey}</span> : null}
-          </span>
-        </button>
+        <Tooltip
+          placement="bottom"
+          key={token.id ?? `${token.text}-${index}`}
+          content={
+            <div className="tooltip-stack">
+              <strong>{token.text}</strong>
+              {token.meaning ? <span>{token.meaning}</span> : null}
+              {token.explanation ? <span>{token.explanation}</span> : null}
+              {token.commonMistakes?.length ? <span>{token.commonMistakes.join("; ")}</span> : null}
+              {token.learningItemId ? <span>{token.canonicalKey}</span> : null}
+            </div>
+          }
+        >
+          <button className="token-chip" type="button">
+            <span>{token.text}</span>
+          </button>
+        </Tooltip>
       ))}
     </div>
   );
