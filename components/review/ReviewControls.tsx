@@ -19,12 +19,14 @@ export function ReviewControls({ disabled, shuffleEnabled, onRemembered, onForgo
         onClick={onToggleShuffle}
         disabled={disabled}
         aria-pressed={shuffleEnabled}
+        aria-label={shuffleEnabled ? "Random order on" : "Random order off"}
+        title={shuffleEnabled ? "Random order on" : "Random order off"}
       >
         <Shuffle size={14} className="shuffle-icon" />
         <span className="shuffle-track">
           <span className="shuffle-thumb" />
         </span>
-        <span className="shuffle-label">Shuffle</span>
+        <span className="shuffle-label">Random order</span>
       </button>
 
       <div className="review-action-group">
@@ -49,7 +51,7 @@ export function ReviewControls({ disabled, shuffleEnabled, onRemembered, onForgo
       </div>
 
       <p className="review-hotkey-hint" aria-label="Keyboard shortcut hint">
-        Use <kbd>←</kbd> for Not Remembered and <kbd>→</kbd> for Remembered
+        Sequential when off, random when on. Use <kbd>←</kbd> for Not Remembered and <kbd>→</kbd> for Remembered.
       </p>
     </div>
   );

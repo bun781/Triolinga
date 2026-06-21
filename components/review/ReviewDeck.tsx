@@ -53,7 +53,7 @@ export function ReviewDeck({ sentences }: ReviewDeckProps) {
     return (
       <section className="card review-empty">
         <h2>Review queue complete</h2>
-        <p className="muted">Shuffle to start another pass through the current review set.</p>
+        <p className="muted">Turn random order on to start another pass through the current review set.</p>
         <ReviewControls
           disabled={saving}
           shuffleEnabled={shuffleEnabled}

@@ -29,6 +29,18 @@ export function buildReviewQueue(sentences: ReviewSentenceRow[], seed = Date.now
     .map((sentence) => sentence.id);
 }
 
+export function buildReviewQueueWithCurrent(
+  sentences: ReviewSentenceRow[],
+  currentSentenceId: string | null,
+  seed = Date.now(),
+  shuffled = true
+): string[] {
+  const queue = buildReviewQueue(sentences, seed, shuffled);
+  if (!currentSentenceId) return queue;
+
+  return [currentSentenceId, ...queue.filter((id) => id !== currentSentenceId)];
+}
+
 export function applyReviewDecision(
   sentence: ReviewSentence,
   decision: ReviewDecision,

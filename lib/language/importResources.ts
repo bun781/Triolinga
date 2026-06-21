@@ -20,6 +20,11 @@ export interface ImportPromptTemplate {
   prompt: string;
 }
 
+export interface LanguageOption {
+  code: string;
+  label: string;
+}
+
 export interface LanguageLessonGroup {
   language: string;
   label: string;
@@ -28,12 +33,46 @@ export interface LanguageLessonGroup {
 
 const preferredLanguageOrder = ["ko", "zh", "ja", "vi"];
 
-const languageLabels: Record<string, string> = {
-  ko: "Korean",
-  zh: "Chinese",
-  ja: "Japanese",
-  vi: "Vietnamese"
-};
+export const languageOptions: LanguageOption[] = [
+  { code: "ar", label: "Arabic" },
+  { code: "bn", label: "Bengali" },
+  { code: "cs", label: "Czech" },
+  { code: "da", label: "Danish" },
+  { code: "de", label: "German" },
+  { code: "el", label: "Greek" },
+  { code: "en", label: "English" },
+  { code: "es", label: "Spanish" },
+  { code: "fa", label: "Persian" },
+  { code: "fi", label: "Finnish" },
+  { code: "fil", label: "Filipino" },
+  { code: "fr", label: "French" },
+  { code: "he", label: "Hebrew" },
+  { code: "hi", label: "Hindi" },
+  { code: "hu", label: "Hungarian" },
+  { code: "id", label: "Indonesian" },
+  { code: "it", label: "Italian" },
+  { code: "ja", label: "Japanese" },
+  { code: "ko", label: "Korean" },
+  { code: "ms", label: "Malay" },
+  { code: "nl", label: "Dutch" },
+  { code: "no", label: "Norwegian" },
+  { code: "pl", label: "Polish" },
+  { code: "pt", label: "Portuguese" },
+  { code: "ro", label: "Romanian" },
+  { code: "ru", label: "Russian" },
+  { code: "sv", label: "Swedish" },
+  { code: "sw", label: "Swahili" },
+  { code: "ta", label: "Tamil" },
+  { code: "th", label: "Thai" },
+  { code: "tr", label: "Turkish" },
+  { code: "uk", label: "Ukrainian" },
+  { code: "ur", label: "Urdu" },
+  { code: "vi", label: "Vietnamese" },
+  { code: "yue", label: "Cantonese" },
+  { code: "zh", label: "Chinese" }
+];
+
+const languageLabels = Object.fromEntries(languageOptions.map((option) => [option.code, option.label]));
 
 export const importGuideSections: ImportGuideSection[] = [
   {
@@ -146,6 +185,10 @@ export const importPromptTemplates: ImportPromptTemplate[] = [
     description: "Create simple lessons with short sentences, common words, and a light annotation set.",
     prompt: `Generate one valid lesson JSON object for a beginner language lesson.
 
+Metadata first:
+- Start the JSON with this top-level order: title, language, baseLanguage, level, source, tags, description, sentences.
+- Fill in the lesson metadata before writing the sentences array.
+
 Rules:
 - Return JSON only. No markdown, no code fences, no commentary.
 - Use this schema: language, baseLanguage, title, description, source, level, tags, sentences.
@@ -172,6 +215,10 @@ Output a fully valid JSON object that can be pasted into the lesson builder.`
     title: "Intermediate lessons",
     description: "Create longer lessons with richer grammar, more vocabulary variety, and natural examples.",
     prompt: `Generate one valid lesson JSON object for an intermediate language lesson.
+
+Metadata first:
+- Start the JSON with this top-level order: title, language, baseLanguage, level, source, tags, description, sentences.
+- Fill in the lesson metadata before writing the sentences array.
 
 Rules:
 - Return JSON only. No markdown, no code fences, no commentary.
@@ -201,6 +248,10 @@ Output a single JSON object that the importer can validate directly.`
     description: "Build lessons around grouped vocabulary with short example sentences for each cluster.",
     prompt: `Generate one valid lesson JSON object for a vocabulary-focused lesson.
 
+Metadata first:
+- Start the JSON with this top-level order: title, language, baseLanguage, level, source, tags, description, sentences.
+- Fill in the lesson metadata before writing the sentences array.
+
 Rules:
 - Return JSON only. No markdown, no code fences, no commentary.
 - Organize the lesson around themed vocabulary groups.
@@ -226,6 +277,10 @@ Output a lesson JSON object that the importer can save without edits.`
     title: "Grammar lessons",
     description: "Generate lessons that center on one grammar point with clear examples and explanation notes.",
     prompt: `Generate one valid lesson JSON object for a grammar-focused lesson.
+
+Metadata first:
+- Start the JSON with this top-level order: title, language, baseLanguage, level, source, tags, description, sentences.
+- Fill in the lesson metadata before writing the sentences array.
 
 Rules:
 - Return JSON only. No markdown, no code fences, no commentary.
@@ -253,10 +308,15 @@ export function formatLanguageLabel(language: string): string {
   return languageLabels[language.toLowerCase()] ?? language.toUpperCase();
 }
 
-function formatLanguagePairLabel(baseLanguage: string, targetLanguage: string): string {
-  const base = languageLabels[baseLanguage.toLowerCase()] ?? baseLanguage.toUpperCase();
-  const target = languageLabels[targetLanguage.toLowerCase()] ?? targetLanguage.toUpperCase();
-  return `${base} → ${target}`;
+export function findLanguageOption(value: string): LanguageOption | undefined {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  return languageOptions.find((option) => (
+    option.code === normalized ||
+    option.label.toLowerCase() === normalized ||
+    `${option.label.toLowerCase()} (${option.code})` === normalized
+  ));
 }
 
 export function groupLessonsByLanguage(lessons: StudyLessonMeta[]): LanguageLessonGroup[] {
@@ -274,7 +334,7 @@ export function groupLessonsByLanguage(lessons: StudyLessonMeta[]): LanguageLess
   return [...groups.entries()]
     .map(([language, groupedLessons]) => ({
       language,
-      label: formatLanguagePairLabel(groupedLessons[0]?.baseLanguage ?? "en", language),
+      label: formatLanguageLabel(language),
       lessons: groupedLessons
     }))
     .sort((a, b) => compareLanguages(a.language, b.language) || a.label.localeCompare(b.label));

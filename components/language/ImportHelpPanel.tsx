@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { Check, Copy, Sparkles } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { importGuideSections, importPromptTemplates } from "@/lib/language/importResources";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -32,12 +31,34 @@ export function ImportHelpPanel() {
     }
   }
 
+  function toggleTab(nextTab: HelpTab) {
+    if (isOpen && tab === nextTab) {
+      setIsOpen(false);
+      return;
+    }
+
+    setTab(nextTab);
+    setIsOpen(true);
+  }
+
   return (
     <div className="import-help-toggle">
-      <button className="button secondary" type="button" onClick={() => setIsOpen((current) => !current)}>
-        <Sparkles size={18} />
-        {isOpen ? "Hide guide" : "Guide & prompts"}
-      </button>
+      <div className="mode-tabs import-help-toggle-tabs" role="tablist" aria-label="Lesson import help tabs">
+        <button
+          className={isOpen && tab === "guide" ? "active" : ""}
+          type="button"
+          onClick={() => toggleTab("guide")}
+        >
+          Guide
+        </button>
+        <button
+          className={isOpen && tab === "prompts" ? "active" : ""}
+          type="button"
+          onClick={() => toggleTab("prompts")}
+        >
+          Prompts
+        </button>
+      </div>
 
       {isOpen ? (
         <section className="card stack import-help-panel">
@@ -46,7 +67,6 @@ export function ImportHelpPanel() {
               <h2>Guide & prompt templates</h2>
               <p className="muted">Use the guide to validate lesson JSON, or copy a prompt template into your AI model of choice.</p>
             </div>
-            <Sparkles size={18} />
           </div>
 
           <div className="mode-tabs import-help-tabs" role="tablist" aria-label="Lesson import help">

@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { updateReviewItem } from "@/lib/desktopApi";
-import { applyReviewDecision, buildReviewQueue, getReviewShortcutAction, summarizeReviewSentences } from "./algorithm";
+import {
+  applyReviewDecision,
+  buildReviewQueue,
+  buildReviewQueueWithCurrent,
+  getReviewShortcutAction,
+  summarizeReviewSentences
+} from "./algorithm";
 import type { ReviewDecision, ReviewSentence } from "./types";
 
 interface ReviewDeckState {
@@ -16,12 +22,12 @@ interface ReviewDeckState {
 
 export function useReviewDeck(initialSentences: ReviewSentence[]) {
   const [state, setState] = useState<ReviewDeckState>(() => ({
-    order: buildReviewQueue(asRows(initialSentences)),
+    order: buildReviewQueue(asRows(initialSentences), 0, false),
     position: 0,
     sentences: initialSentences,
     saving: false,
     error: null,
-    shuffleEnabled: true
+    shuffleEnabled: false
   }));
 
   const currentId = state.order[state.position] ?? null;
@@ -32,12 +38,7 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
     setState((prev) => {
       const next = !prev.shuffleEnabled;
       const currentId = prev.order[prev.position] ?? null;
-
-      if (currentId) {
-        return { ...prev, shuffleEnabled: next, error: null };
-      }
-
-      const nextOrder = buildReviewQueue(asRows(prev.sentences), Date.now(), next);
+      const nextOrder = buildReviewQueueWithCurrent(asRows(prev.sentences), currentId, Date.now(), next);
       return { ...prev, shuffleEnabled: next, order: nextOrder, position: 0, error: null };
     });
   }, []);
@@ -55,7 +56,9 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
       sentences: nextSentences,
       saving: true,
       error: null,
-      order: nextPosition >= prev.order.length ? buildReviewQueue(asRows(nextSentences), reviewedAt.getTime()) : prev.order,
+      order: nextPosition >= prev.order.length
+        ? buildReviewQueue(asRows(nextSentences), prev.shuffleEnabled ? reviewedAt.getTime() : 0, prev.shuffleEnabled)
+        : prev.order,
       position: nextPosition >= prev.order.length ? 0 : nextPosition
     }));
 

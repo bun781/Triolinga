@@ -10,7 +10,7 @@ This page is the standalone sentence review flow at `/review`.
 4. `ArrowLeft` or the Not Remembered button marks a sentence as forgotten.
 5. `ArrowRight` or the Remembered button marks a sentence as remembered.
 6. Each answer is saved immediately and the local queue advances.
-7. Shuffle rebuilds the queue without introducing duplicate review logic.
+7. Random order is a mode toggle: off means sequential order, on means the queue is randomized within each review bucket.
 
 ## Data Fields
 
@@ -43,4 +43,4 @@ This is intentionally simple session logic, not a final spaced-repetition engine
 
 - Keyboard shortcuts are only active while the review component is mounted.
 - The queue avoids repeating items within a cycle.
-- Shuffle rebuilds the order without changing the sentence state model.
+- Random order rebuilds the order without changing the sentence state model.

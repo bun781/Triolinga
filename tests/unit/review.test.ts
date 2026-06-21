@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyReviewDecision, buildReviewQueue, getReviewShortcutAction, summarizeReviewSentences } from "@/lib/review/algorithm";
+import {
+  applyReviewDecision,
+  buildReviewQueue,
+  buildReviewQueueWithCurrent,
+  getReviewShortcutAction,
+  summarizeReviewSentences
+} from "@/lib/review/algorithm";
 import type { ReviewSentenceRow } from "@/lib/review/types";
 
 describe("review keyboard shortcuts", () => {
@@ -112,6 +118,20 @@ describe("review algorithm", () => {
 
     expect(new Set(queue).size).toBe(queue.length);
     expect(queue).toHaveLength(sentences.length);
+  });
+
+  it("keeps buckets in sequential order when shuffle is off", () => {
+    const queue = buildReviewQueue(sentences, 7, false);
+
+    expect(queue).toEqual(["forgotten", "unknown-a", "unknown-b", "remembered-low", "remembered-high"]);
+  });
+
+  it("moves the current sentence to the front when rebuilding the queue", () => {
+    const queue = buildReviewQueueWithCurrent(sentences, "unknown-b", 7, false);
+
+    expect(queue[0]).toBe("unknown-b");
+    expect(queue).toContain("forgotten");
+    expect(new Set(queue).size).toBe(queue.length);
   });
 
   it("changes order when the shuffle seed changes", () => {

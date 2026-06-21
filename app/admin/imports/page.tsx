@@ -11,12 +11,13 @@ import {
   Trash2,
   Upload
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ImportHelpPanel } from "@/components/language/ImportHelpPanel";
 import { ImportPreview } from "@/components/language/ImportPreview";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { importLesson as importLessonApi, previewLessonImport } from "@/lib/desktopApi";
+import { findLanguageOption, languageOptions } from "@/lib/language/importResources";
 import type {
   LessonChunkInput,
   LessonGrammarInput,
@@ -49,14 +50,20 @@ interface AnnotationDraft {
   tags: string;
 }
 
+interface LanguageFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
 const sampleLesson = `{
+  "title": "Beginner Korean Lesson 1",
   "language": "ko",
   "baseLanguage": "en",
-  "title": "Beginner Korean Lesson 1",
-  "description": "Basic greetings and movement",
-  "source": "ai_generated",
   "level": "beginner",
+  "source": "ai_generated",
   "tags": ["daily", "travel"],
+  "description": "Basic greetings and movement",
   "sentences": [
     {
       "text": "저는 학교에 갑니다.",
@@ -373,37 +380,76 @@ export default function LessonImportsPage() {
         </div>
       </div>
 
-      <div className="mode-tabs" role="tablist" aria-label="Lesson editor mode">
-        <button className={mode === "builder" ? "active" : ""} type="button" onClick={() => setMode("builder")}>
-          <BookOpen size={17} />
-          Builder
-        </button>
-        <button className={mode === "json" ? "active" : ""} type="button" onClick={() => {
-          setSource(stringifyLesson(lesson));
-          setMode("json");
-        }}>
-          <FileJson size={17} />
-          JSON
-        </button>
-      </div>
-
-      <section className="card action-bar import-action-bar">
-        <div>
-          <strong>{lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}</strong>
-          <p className="muted">Validation checks surfaces before the lesson is saved.</p>
+      <section className="card stack lesson-builder-top">
+        <div className="lesson-builder-topbar">
+          <div className="mode-tabs" role="tablist" aria-label="Lesson editor mode">
+            <button className={mode === "builder" ? "active" : ""} type="button" onClick={() => setMode("builder")}>
+              <BookOpen size={17} />
+              Builder
+            </button>
+            <button className={mode === "json" ? "active" : ""} type="button" onClick={() => {
+              setSource(stringifyLesson(lesson));
+              setMode("json");
+            }}>
+              <FileJson size={17} />
+              JSON
+            </button>
+          </div>
+          <ImportHelpPanel />
         </div>
-        <div className="row compact-row">
-          <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("validate")}>
-            Check lesson
-          </button>
-          <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("preview")}>
-            <Upload size={18} />
-            {loading ? "Checking" : "Preview lesson"}
-          </button>
-          <button className="button" type="button" disabled={importing} onClick={importLesson}>
-            <Save size={18} />
-            {importing ? "Saving" : "Save lesson"}
-          </button>
+
+        <div className="lesson-meta-layout">
+          <div className="stack">
+            <div className="row">
+              <div>
+                <h2>Lesson metadata</h2>
+                <p className="muted">Set the lesson details up front, then build sentences and annotations below.</p>
+              </div>
+              <div className="lesson-meta-count">
+                <strong>{lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}</strong>
+                <span className="muted">Validation checks surfaces before the lesson is saved.</span>
+              </div>
+            </div>
+
+            <div className="lesson-meta-grid">
+              <label className="field lesson-meta-title">
+                <span>Title</span>
+                <input className="input" value={lesson.title} onChange={(event) => updateLessonField("title", event.target.value)} />
+              </label>
+              <LanguageField label="Language" value={lesson.language} onChange={(value) => updateLessonField("language", value)} />
+              <LanguageField label="Base" value={lesson.baseLanguage} onChange={(value) => updateLessonField("baseLanguage", value)} />
+              <label className="field">
+                <span>Level</span>
+                <input className="input" value={lesson.level ?? ""} onChange={(event) => updateLessonField("level", event.target.value)} />
+              </label>
+              <label className="field">
+                <span>Source</span>
+                <input className="input" value={lesson.source ?? ""} onChange={(event) => updateLessonField("source", event.target.value)} />
+              </label>
+              <label className="field lesson-meta-tags">
+                <span>Tags</span>
+                <input className="input" value={(lesson.tags ?? []).join(", ")} onChange={(event) => updateLessonField("tags", splitTags(event.target.value))} />
+              </label>
+              <label className="field lesson-meta-description">
+                <span>Description</span>
+                <input className="input" value={lesson.description ?? ""} onChange={(event) => updateLessonField("description", event.target.value)} />
+              </label>
+            </div>
+          </div>
+
+          <div className="lesson-builder-actions">
+            <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("validate")}>
+              Check lesson
+            </button>
+            <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("preview")}>
+              <Upload size={18} />
+              {loading ? "Checking" : "Preview lesson"}
+            </button>
+            <button className="button" type="button" disabled={importing} onClick={importLesson}>
+              <Save size={18} />
+              {importing ? "Saving" : "Save lesson"}
+            </button>
+          </div>
         </div>
       </section>
 
@@ -486,40 +532,6 @@ export default function LessonImportsPage() {
             </div>
 
             <aside className="stack">
-              <section className="card meta-compact stack">
-                <h2>Lesson</h2>
-                <label className="field">
-                  <span>Title</span>
-                  <input className="input" value={lesson.title} onChange={(event) => updateLessonField("title", event.target.value)} />
-                </label>
-                <div className="meta-grid-2">
-                  <label className="field">
-                    <span>Language</span>
-                    <input className="input" value={lesson.language} onChange={(event) => updateLessonField("language", event.target.value)} />
-                  </label>
-                  <label className="field">
-                    <span>Base</span>
-                    <input className="input" value={lesson.baseLanguage} onChange={(event) => updateLessonField("baseLanguage", event.target.value)} />
-                  </label>
-                  <label className="field">
-                    <span>Level</span>
-                    <input className="input" value={lesson.level ?? ""} onChange={(event) => updateLessonField("level", event.target.value)} />
-                  </label>
-                  <label className="field">
-                    <span>Source</span>
-                    <input className="input" value={lesson.source ?? ""} onChange={(event) => updateLessonField("source", event.target.value)} />
-                  </label>
-                </div>
-                <label className="field">
-                  <span>Tags</span>
-                  <input className="input" value={(lesson.tags ?? []).join(", ")} onChange={(event) => updateLessonField("tags", splitTags(event.target.value))} />
-                </label>
-                <label className="field">
-                  <span>Description</span>
-                  <input className="input" value={lesson.description ?? ""} onChange={(event) => updateLessonField("description", event.target.value)} />
-                </label>
-              </section>
-
               <section className="card stack">
                 <div className="row">
                   <h2>Annotate</h2>
@@ -623,8 +635,6 @@ export default function LessonImportsPage() {
         </section>
       )}
 
-      <ImportHelpPanel />
-
       {errors.length ? (
         <section className="card stack error-card">
           <h2>Validation Errors</h2>
@@ -652,6 +662,73 @@ export default function LessonImportsPage() {
         </div>
       ) : null}
     </AppShell>
+  );
+}
+
+function LanguageField({ label, value, onChange }: LanguageFieldProps) {
+  const [draft, setDraft] = useState("");
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    setDraft(formatLanguageDisplay(value));
+  }, [value]);
+
+  const filteredOptions = useMemo(() => {
+    const normalized = draft.trim().toLowerCase();
+
+    if (!normalized) {
+      return languageOptions.slice(0, 10);
+    }
+
+    return languageOptions
+      .filter((option) => (
+        option.code.includes(normalized) ||
+        option.label.toLowerCase().includes(normalized)
+      ))
+      .slice(0, 10);
+  }, [draft]);
+
+  return (
+    <label className="field searchable-field">
+      <span>{label}</span>
+      <div className="searchable-input-shell">
+        <input
+          className="input"
+          value={draft}
+          onBlur={() => {
+            window.setTimeout(() => setFocused(false), 100);
+            setDraft(formatLanguageDisplay(resolveLanguageValue(draft)));
+          }}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setDraft(nextValue);
+            onChange(resolveLanguageValue(nextValue));
+          }}
+          onFocus={() => setFocused(true)}
+          placeholder="Type a language or code"
+        />
+        {focused && filteredOptions.length ? (
+          <div className="searchable-options" role="listbox" aria-label={`${label} suggestions`}>
+            {filteredOptions.map((option) => (
+              <button
+                className="searchable-option"
+                key={option.code}
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onChange(option.code);
+                  setDraft(formatLanguageDisplay(option.code));
+                  setFocused(false);
+                }}
+              >
+                <strong>{option.label}</strong>
+                <span>{option.code}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </label>
   );
 }
 
@@ -687,6 +764,21 @@ function dropEmpty<T extends object>(item: T): T {
 
 function splitTags(value: string): string[] {
   return value.split(",").map((tag) => tag.trim()).filter(Boolean);
+}
+
+function resolveLanguageValue(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return findLanguageOption(trimmed)?.code ?? trimmed;
+}
+
+function formatLanguageDisplay(value: string): string {
+  if (!value) return "";
+
+  const match = findLanguageOption(value);
+  if (!match) return value;
+
+  return `${match.label} (${match.code})`;
 }
 
 function getCharIndex(node: Node | null): number | null {
