@@ -6,7 +6,6 @@ import { ImportedContentStudy } from "@/components/imported-content/ImportedCont
 import { PageState } from "@/components/system/PageState";
 import type { StudyLesson, StudyLessonMeta } from "@/lib/imported-content/types";
 import { getLesson, getLessons } from "@/lib/desktopApi";
-import { formatLanguageLabel } from "@/lib/language/importResources";
 
 export default function ImportedContentPage() {
   const [allLessons, setAllLessons] = useState<StudyLessonMeta[]>([]);
@@ -45,13 +44,8 @@ export default function ImportedContentPage() {
       <div className="topbar">
         <div>
           <h1>Lesson Library</h1>
-          <p className="muted">Study saved lessons one sentence at a time, grouped by language.</p>
+          <p className="muted">Study and review saved lessons sentence by sentence.</p>
         </div>
-        {latestLesson ? (
-          <span className="pill">
-            {formatLanguageLabel(latestLesson.language)} - {formatLanguageLabel(latestLesson.baseLanguage)}
-          </span>
-        ) : null}
       </div>
 
       {loading ? (

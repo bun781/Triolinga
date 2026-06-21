@@ -1,33 +1,48 @@
 "use client";
 
-import { Tooltip } from "@/components/ui/Tooltip";
-
 interface ReviewControlsProps {
   disabled?: boolean;
+  shuffleEnabled: boolean;
   onRemembered: () => void;
   onForgotten: () => void;
-  onShuffle: () => void;
+  onToggleShuffle: () => void;
 }
 
-export function ReviewControls({ disabled, onRemembered, onForgotten, onShuffle }: ReviewControlsProps) {
+export function ReviewControls({ disabled, shuffleEnabled, onRemembered, onForgotten, onToggleShuffle }: ReviewControlsProps) {
   return (
     <div className="review-controls">
-      <Tooltip content="Shuffle the current queue and start over.">
-        <button className="button secondary" type="button" disabled={disabled} onClick={onShuffle}>
-          Shuffle
-        </button>
-      </Tooltip>
+      <label className="shuffle-toggle" title="Shuffle the review queue">
+        <input
+          type="checkbox"
+          checked={shuffleEnabled}
+          onChange={onToggleShuffle}
+          disabled={disabled}
+        />
+        <span className="shuffle-toggle-track">
+          <span className="shuffle-toggle-thumb" />
+        </span>
+        <span className="shuffle-toggle-label">Shuffle</span>
+      </label>
+
       <div className="review-action-group">
-        <Tooltip content="Mark this sentence as not remembered. Shortcut: Left Arrow.">
-          <button className="button secondary review-negative" type="button" disabled={disabled} onClick={onForgotten}>
-            ← Not Remembered
-          </button>
-        </Tooltip>
-        <Tooltip content="Mark this sentence as remembered. Shortcut: Right Arrow.">
-          <button className="button review-positive" type="button" disabled={disabled} onClick={onRemembered}>
-            Remembered →
-          </button>
-        </Tooltip>
+        <button
+          className="button review-negative"
+          type="button"
+          disabled={disabled}
+          onClick={onForgotten}
+          title="Not remembered  ·  ←"
+        >
+          ← Not Remembered
+        </button>
+        <button
+          className="button review-positive"
+          type="button"
+          disabled={disabled}
+          onClick={onRemembered}
+          title="Remembered  ·  →"
+        >
+          Remembered →
+        </button>
       </div>
     </div>
   );

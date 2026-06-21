@@ -11,6 +11,7 @@ interface ReviewDeckState {
   sentences: ReviewSentence[];
   saving: boolean;
   error: string | null;
+  shuffleEnabled: boolean;
 }
 
 export function useReviewDeck(initialSentences: ReviewSentence[]) {
@@ -19,7 +20,8 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
     position: 0,
     sentences: initialSentences,
     saving: false,
-    error: null
+    error: null,
+    shuffleEnabled: true
   }));
 
   const currentId = state.order[state.position] ?? null;
@@ -27,16 +29,22 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
   const summary = summarizeReviewSentences(asRows(state.sentences));
 
   const reshuffle = useCallback((currentSentenceId = currentSentence?.id ?? null) => {
-    const nextOrder = buildReviewQueue(asRows(state.sentences), Date.now());
-    const reordered = currentSentenceId ? [currentSentenceId, ...nextOrder.filter((id) => id !== currentSentenceId)] : nextOrder;
+    setState((prev) => {
+      const nextOrder = buildReviewQueue(asRows(prev.sentences), Date.now(), prev.shuffleEnabled);
+      const reordered = currentSentenceId
+        ? [currentSentenceId, ...nextOrder.filter((id) => id !== currentSentenceId)]
+        : nextOrder;
+      return { ...prev, order: reordered, position: 0, error: null };
+    });
+  }, [currentSentence?.id]);
 
-    setState((prev) => ({
-      ...prev,
-      order: reordered,
-      position: 0,
-      error: null
-    }));
-  }, [currentSentence?.id, state.sentences]);
+  const toggleShuffle = useCallback(() => {
+    setState((prev) => {
+      const next = !prev.shuffleEnabled;
+      const nextOrder = buildReviewQueue(asRows(prev.sentences), next ? Date.now() : 0, next);
+      return { ...prev, shuffleEnabled: next, order: nextOrder, position: 0, error: null };
+    });
+  }, []);
 
   const reviewCurrent = useCallback(async (decision: ReviewDecision) => {
     if (!currentSentence || state.saving) return;
@@ -91,8 +99,10 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
     total: state.sentences.length,
     saving: state.saving,
     error: state.error,
+    shuffleEnabled: state.shuffleEnabled,
     reviewCurrent,
-    reshuffle
+    reshuffle,
+    toggleShuffle
   };
 }
 

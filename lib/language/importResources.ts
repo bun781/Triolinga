@@ -253,6 +253,12 @@ export function formatLanguageLabel(language: string): string {
   return languageLabels[language.toLowerCase()] ?? language.toUpperCase();
 }
 
+function formatLanguagePairLabel(baseLanguage: string, targetLanguage: string): string {
+  const base = languageLabels[baseLanguage.toLowerCase()] ?? baseLanguage.toUpperCase();
+  const target = languageLabels[targetLanguage.toLowerCase()] ?? targetLanguage.toUpperCase();
+  return `${base} → ${target}`;
+}
+
 export function groupLessonsByLanguage(lessons: StudyLessonMeta[]): LanguageLessonGroup[] {
   const groups = new Map<string, StudyLessonMeta[]>();
 
@@ -268,7 +274,7 @@ export function groupLessonsByLanguage(lessons: StudyLessonMeta[]): LanguageLess
   return [...groups.entries()]
     .map(([language, groupedLessons]) => ({
       language,
-      label: formatLanguageLabel(language),
+      label: formatLanguagePairLabel(groupedLessons[0]?.baseLanguage ?? "en", language),
       lessons: groupedLessons
     }))
     .sort((a, b) => compareLanguages(a.language, b.language) || a.label.localeCompare(b.label));

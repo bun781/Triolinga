@@ -226,16 +226,23 @@ button, input, textarea, select {
   letter-spacing: 0.02em;
   min-height: 36px;
   padding: 0 16px;
-  transition: opacity 0.1s;
+  transition: opacity 0.15s, transform 0.12s, border-color 0.15s, background 0.15s;
 }
 
 .button:hover {
-  opacity: 0.78;
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.button:active {
+  opacity: 1;
+  transform: scale(0.96) translateY(0);
 }
 
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.38;
+  transform: none;
 }
 
 .button.secondary {
@@ -247,6 +254,7 @@ button, input, textarea, select {
 .button.secondary:hover {
   border-color: var(--ink);
   opacity: 1;
+  transform: translateY(-1px);
 }
 
 .button.kind-word { background: var(--word); border-color: var(--word); }
@@ -254,13 +262,27 @@ button, input, textarea, select {
 .button.kind-chunk { background: var(--chunk); border-color: var(--chunk); }
 
 .button.review-positive {
-  background: #14532d;
-  border-color: #14532d;
+  background: #166534;
+  border-color: #166534;
+  color: #ffffff;
+}
+
+.button.review-positive:hover {
+  background: #15803d;
+  border-color: #15803d;
+  opacity: 1;
 }
 
 .button.review-negative {
-  background: #7f1d1d;
-  border-color: #7f1d1d;
+  background: #991b1b;
+  border-color: #991b1b;
+  color: #ffffff;
+}
+
+.button.review-negative:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  opacity: 1;
 }
 
 /* ── Utility ────────────────────────────────────────────── */
@@ -409,6 +431,79 @@ button, input, textarea, select {
   color: var(--muted);
 }
 
+.review-sentence-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+}
+
+.review-sentence-row .review-sentence {
+  flex: 1;
+}
+
+.review-reveal-hint {
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+/* ── Shuffle toggle ──────────────────────────────────────── */
+
+.shuffle-toggle {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 9px;
+  user-select: none;
+}
+
+.shuffle-toggle input {
+  display: none;
+}
+
+.shuffle-toggle-track {
+  background: var(--line);
+  border-radius: 20px;
+  flex-shrink: 0;
+  height: 22px;
+  position: relative;
+  transition: background 0.2s;
+  width: 42px;
+}
+
+.shuffle-toggle input:checked ~ .shuffle-toggle-track {
+  background: var(--ink);
+}
+
+.shuffle-toggle-thumb {
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  height: 16px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 16px;
+}
+
+.shuffle-toggle input:checked ~ .shuffle-toggle-track .shuffle-toggle-thumb {
+  transform: translateX(20px);
+}
+
+.shuffle-toggle-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.shuffle-toggle:hover .shuffle-toggle-label {
+  color: var(--ink);
+}
+
 /* ── Form inputs ────────────────────────────────────────── */
 
 .input {
@@ -524,7 +619,15 @@ textarea.input {
   justify-items: start;
   padding: 10px 12px;
   text-align: left;
-  transition: border-color 0.1s, color 0.1s, background 0.1s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.language-tabs button:hover {
+  transform: translateY(-1px);
+}
+
+.language-tabs button:active {
+  transform: scale(0.97);
 }
 
 .language-tabs button small {
@@ -732,7 +835,17 @@ textarea.input {
   min-height: 30px;
   padding: 0 14px;
   text-transform: capitalize;
-  transition: color 0.1s;
+  transition: color 0.15s, transform 0.1s;
+}
+
+.mode-tabs button:hover,
+.annotation-types button:hover {
+  transform: translateY(-1px);
+}
+
+.mode-tabs button:active,
+.annotation-types button:active {
+  transform: scale(0.94);
 }
 
 .mode-tabs button.active {
@@ -817,7 +930,15 @@ textarea.input {
   overflow: hidden;
   padding: 6px 12px;
   text-align: left;
-  transition: border-color 0.1s, color 0.1s;
+  transition: border-color 0.15s, color 0.15s, transform 0.12s;
+}
+
+.sentence-tabs button:hover {
+  transform: translateX(2px);
+}
+
+.sentence-tabs button:active {
+  transform: scale(0.98);
 }
 
 .sentence-tabs button span {
@@ -953,18 +1074,24 @@ textarea.input {
   display: inline-flex;
   height: 34px;
   justify-content: center;
-  transition: border-color 0.1s, color 0.1s;
+  transition: border-color 0.15s, color 0.15s, transform 0.12s;
   width: 34px;
 }
 
 .icon-button:hover {
   border-color: var(--ink);
   color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.icon-button:active {
+  transform: scale(0.92);
 }
 
 .icon-button:disabled {
   cursor: not-allowed;
   opacity: 0.32;
+  transform: none;
 }
 
 .action-bar {
@@ -1222,6 +1349,74 @@ textarea.input {
 
 .lesson-picker {
   max-width: 480px;
+}
+
+/* ── Lesson selector bar ─────────────────────────────────── */
+
+.lesson-selector-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selector-compact {
+  font-size: 13px;
+  min-height: 32px;
+  max-width: 240px;
+  padding: 4px 10px;
+  width: auto;
+}
+
+.session-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.grade-stat-easy { border-color: rgba(22, 101, 52, 0.45); color: var(--ok); }
+.grade-stat-good { border-color: rgba(59, 130, 246, 0.45); color: var(--word); }
+.grade-stat-hard { border-color: rgba(181, 154, 106, 0.55); color: var(--accent); }
+.grade-stat-again { border-color: rgba(146, 64, 14, 0.45); color: var(--warn); }
+
+/* ── Grade row (grades + shuffle in one line) ────────────── */
+
+.grade-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grade-row-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.grade-btn.grade-easy.active  { background: rgba(22, 101, 52, 0.1); border-color: var(--ok); color: var(--ok); }
+.grade-btn.grade-correct.active { background: rgba(59, 130, 246, 0.1); border-color: var(--word); color: var(--word); }
+.grade-btn.grade-hard.active  { background: rgba(181, 154, 106, 0.15); border-color: var(--accent); color: var(--accent); }
+.grade-btn.grade-failed.active { background: rgba(146, 64, 14, 0.1); border-color: var(--warn); color: var(--warn); }
+
+/* ── Review decision row ─────────────────────────────────── */
+
+.review-decision-row {
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.button.secondary.review-forgotten:hover {
+  border-color: #7f1d1d;
+  color: #7f1d1d;
+}
+
+.button.secondary.review-remembered:hover {
+  border-color: #14532d;
+  color: #14532d;
 }
 
 /* ── Responsive ─────────────────────────────────────────── */

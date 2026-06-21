@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 
 const navLinks: Array<{ href: Route<string>; label: string }> = [
   { href: "/admin/imports", label: "Lesson Builder" },
-  { href: "/study/imported-content", label: "Lesson Library" },
-  { href: "/review", label: "Review" }
+  { href: "/study/imported-content", label: "Lesson Library" }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

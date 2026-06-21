@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ItemFamiliarity, RevealState, SelectedItem, StudySentence } from "@/lib/imported-content/types";
+import type { ReviewDecision } from "@/lib/review/types";
 import { getHint } from "@/lib/imported-content/study-utils";
 import { useSpeech } from "@/lib/useSpeech";
 import { InteractiveToken } from "./InteractiveToken";
@@ -20,19 +21,23 @@ interface Props {
   reveal: RevealState;
   sessionFamiliarity: Map<string, ItemFamiliarity>;
   currentGrade: string | null;
+  reviewState: ReviewDecision | null;
+  isSavingReview: boolean;
   onRevealTranslation: () => void;
   onToggleWordMeanings: () => void;
   onToggleGrammar: () => void;
   onToggleHint: () => void;
   onGrade: (grade: "easy" | "correct" | "hard" | "failed") => void;
+  onShuffle: () => void;
+  onReview: (decision: ReviewDecision) => void;
   onPrev: () => void;
   onNext: () => void;
 }
 
 const GRADES = [
-  { id: "failed", label: "Failed" },
+  { id: "failed", label: "Again" },
   { id: "hard", label: "Hard" },
-  { id: "correct", label: "Correct" },
+  { id: "correct", label: "Good" },
   { id: "easy", label: "Easy" }
 ] as const;
 
@@ -46,11 +51,15 @@ export function SentenceFlashcard({
   reveal,
   sessionFamiliarity,
   currentGrade,
+  reviewState,
+  isSavingReview,
   onRevealTranslation,
   onToggleWordMeanings,
   onToggleGrammar,
   onToggleHint,
   onGrade,
+  onShuffle,
+  onReview,
   onPrev,
   onNext
 }: Props) {
@@ -195,18 +204,42 @@ export function SentenceFlashcard({
         selectedItem={selectedItem}
       />
 
-      {/* Difficulty grade */}
-      <div className="grade-grid">
+      {/* Difficulty grade + Shuffle */}
+      <div className="grade-row">
         {GRADES.map(({ id, label }) => (
           <button
             key={id}
             type="button"
-            className={`button secondary${currentGrade === id ? " active" : ""}`}
+            className={`button secondary grade-btn grade-${id}${currentGrade === id ? " active" : ""}`}
             onClick={() => onGrade(id)}
           >
             {label}
           </button>
         ))}
+        <div className="grade-row-spacer" />
+        <button type="button" className="button secondary" onClick={onShuffle}>
+          Shuffle
+        </button>
+      </div>
+
+      {/* Remembered / Not Remembered */}
+      <div className="review-decision-row">
+        <button
+          type="button"
+          className={`button ${reviewState === "forgotten" ? "review-negative" : "secondary review-forgotten"}`}
+          disabled={isSavingReview}
+          onClick={() => onReview("forgotten")}
+        >
+          ✗ Not Remembered
+        </button>
+        <button
+          type="button"
+          className={`button ${reviewState === "remembered" ? "review-positive" : "secondary review-remembered"}`}
+          disabled={isSavingReview}
+          onClick={() => onReview("remembered")}
+        >
+          ✓ Remembered
+        </button>
       </div>
 
       {/* Navigation */}

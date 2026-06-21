@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { ReviewSentence } from "@/lib/review/types";
 import { useReviewDeck } from "@/lib/review/useReviewDeck";
 import { ReviewControls } from "./ReviewControls";
@@ -10,7 +11,23 @@ interface ReviewDeckProps {
 }
 
 export function ReviewDeck({ sentences }: ReviewDeckProps) {
-  const { currentSentence, position, total, saving, error, reviewCurrent, reshuffle, summary } = useReviewDeck(sentences);
+  const { currentSentence, position, total, saving, error, reviewCurrent, reshuffle, summary, shuffleEnabled, toggleShuffle } = useReviewDeck(sentences);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    setRevealed(false);
+  }, [currentSentence?.id]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== " ") return;
+      if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLInputElement) return;
+      event.preventDefault();
+      setRevealed(true);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   if (!sentences.length) {
     return (
@@ -28,9 +45,10 @@ export function ReviewDeck({ sentences }: ReviewDeckProps) {
         <p className="muted">Shuffle to start another pass through the current review set.</p>
         <ReviewControls
           disabled={saving}
+          shuffleEnabled={shuffleEnabled}
           onRemembered={() => reviewCurrent("remembered")}
           onForgotten={() => reviewCurrent("forgotten")}
-          onShuffle={() => reshuffle()}
+          onToggleShuffle={toggleShuffle}
         />
       </section>
     );
@@ -41,25 +59,26 @@ export function ReviewDeck({ sentences }: ReviewDeckProps) {
       <header className="review-header">
         <div>
           <h1>Review</h1>
-          <p className="muted">Left arrow = Not Remembered. Right arrow = Remembered.</p>
+          <p className="muted">Space = reveal · ← Not Remembered · → Remembered</p>
         </div>
         <div className="review-summary">
           <span className="pill">Total {summary.total}</span>
           <span className="pill">Unknown {summary.unknown}</span>
-          <span className="pill">Forgotten {summary.forgotten}</span>
-          <span className="pill">Remembered {summary.remembered}</span>
+          <span className="pill review-state-forgotten">Forgotten {summary.forgotten}</span>
+          <span className="pill review-state-remembered">Remembered {summary.remembered}</span>
         </div>
       </header>
 
       {error ? <p className="review-error">{error}</p> : null}
 
-      <ReviewSentenceCard sentence={currentSentence} index={position} total={total} />
+      <ReviewSentenceCard sentence={currentSentence} index={position} total={total} revealed={revealed} />
 
       <ReviewControls
         disabled={saving}
+        shuffleEnabled={shuffleEnabled}
         onRemembered={() => reviewCurrent("remembered")}
         onForgotten={() => reviewCurrent("forgotten")}
-        onShuffle={() => reshuffle(currentSentence.id)}
+        onToggleShuffle={toggleShuffle}
       />
     </div>
   );

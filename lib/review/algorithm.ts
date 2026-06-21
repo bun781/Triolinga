@@ -12,7 +12,7 @@ export function getReviewShortcutAction(key: string): ReviewDecision | null {
   return null;
 }
 
-export function buildReviewQueue(sentences: ReviewSentenceRow[], seed = Date.now()): string[] {
+export function buildReviewQueue(sentences: ReviewSentenceRow[], seed = Date.now(), shuffled = true): string[] {
   const rng = createSeededRng(seed);
   const buckets = new Map<number, ReviewSentenceRow[]>();
 
@@ -25,7 +25,7 @@ export function buildReviewQueue(sentences: ReviewSentenceRow[], seed = Date.now
 
   return [...buckets.entries()]
     .sort(([a], [b]) => a - b)
-    .flatMap(([, bucket]) => shuffle(bucket, rng))
+    .flatMap(([, bucket]) => shuffled ? shuffle(bucket, rng) : bucket)
     .map((sentence) => sentence.id);
 }
 
