@@ -1,4 +1,4 @@
-# Lesson Import System Log
+# Lesson Builder System Log
 
 ## Review System Addendum
 
@@ -45,6 +45,7 @@ The new sentence review tab lives at `/review` and uses a separate queue strateg
 - `app/study/imported-content/page.tsx`
 - `app/globals.css`
 - `components/AppShell.tsx`
+- `components/language/ImportHelpPanel.tsx`
 - `components/language/ImportPreview.tsx`
 - `db/schema.ts`
 - `db/migrations/0002_lesson_import.sql`
@@ -80,7 +81,7 @@ Existing tables reused:
 - `review_states`
 - `sentence_review_attempts`
 
-## Import Flow
+## Lesson Builder Flow
 
 1. Parse JSON on the server.
 2. Reject malformed JSON, empty lessons, duplicate sentences, and surface mismatches.
@@ -92,9 +93,9 @@ Existing tables reused:
 8. Create exact-surface links for vocabulary, grammar, and chunks.
 9. Reuse the same imported sentences for Sentence Forge drills and review states.
 
-## Study Page Connections
+## Lesson Library Connections
 
-- `/study/imported-content` reads the latest imported lesson from the database.
+- `/study/imported-content` reads the latest saved lesson from the database and groups the lesson browser by language.
 - It renders sentence text, translation, level, and tags.
 - It uses the sentence-to-vocabulary, sentence-to-grammar, and sentence-to-chunk link tables to show hoverable explanations.
 - Sentence Forge still reads from `drills` and `review_states`, so imported lessons can flow into the existing study queue.
@@ -104,7 +105,7 @@ Existing tables reused:
 - The importer currently blocks canonical item type conflicts instead of trying to merge them.
 - Imported lessons are shown in a single latest-lesson demo view rather than a full lesson browser.
 - Surface matching is normalized string matching, not a tokenizer-aware alignment pass.
-- The demo page shows linked explanations but does not yet highlight exact spans inline inside the sentence text.
+- The library page shows linked explanations but does not yet highlight exact spans inline inside the sentence text.
 
 ## Future Improvements
 

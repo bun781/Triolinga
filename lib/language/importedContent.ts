@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { getDb, db } from "@/lib/server/db";
 import type { StudyLesson, StudyLessonMeta } from "@/lib/imported-content/types";
+import { groupLessonsByLanguage } from "@/lib/language/importResources";
 
 export interface ImportedLessonSentence {
   id: string;
@@ -162,6 +163,10 @@ export async function getAllLessonsMeta(): Promise<StudyLessonMeta[]> {
   const countMap = new Map(countRows.map((r) => [r.lessonId, r.cnt]));
 
   return lessonList.map((l) => ({ ...l, sentenceCount: countMap.get(l.id) ?? 0 }));
+}
+
+export function groupImportedLessonsByLanguage(lessons: StudyLessonMeta[]) {
+  return groupLessonsByLanguage(lessons);
 }
 
 export async function getLessonContentById(lessonId: string): Promise<StudyLesson | null> {

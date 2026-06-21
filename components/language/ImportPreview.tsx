@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Check, X } from "lucide-react";
+import { formatLanguageLabel } from "@/lib/language/importResources";
 import type { LessonImportPreviewItem, LessonImportPreviewResult } from "@/lib/language/types";
 
 interface ImportPreviewProps {
@@ -20,7 +21,7 @@ export function ImportPreview({ preview, importing, onApprove, onCancel }: Impor
           <div>
             <h2>{preview.lesson.title}</h2>
             <p className="muted">
-              {preview.lesson.language.toUpperCase()} to {preview.lesson.baseLanguage.toUpperCase()}
+              {formatLanguageLabel(preview.lesson.language)} to {formatLanguageLabel(preview.lesson.baseLanguage)}
             </p>
           </div>
           <span className="pill">{preview.lesson.level ?? "Lesson"}</span>
@@ -91,7 +92,7 @@ export function ImportPreview({ preview, importing, onApprove, onCancel }: Impor
         </button>
         <button className="button" type="button" disabled={blocked || importing} onClick={onApprove}>
           <Check size={18} />
-          {importing ? "Importing" : "Import"}
+          {importing ? "Saving" : "Save lesson"}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateSentenceForgeDrills } from "@/lib/language/generateDrills";
+import { groupLessonsByLanguage, formatLanguageLabel } from "@/lib/language/importResources";
 import { parseLessonJson } from "@/lib/language/importSchema";
 import { buildCanonicalKey, normalizeSentenceText } from "@/lib/language/normalize";
 import { scheduleSentenceReview } from "@/lib/language/srs";
@@ -256,6 +257,19 @@ describe("language normalization and srs", () => {
     expect(scheduleSentenceReview("hard", reviewedAt).nextReviewAt.toISOString()).toBe("2026-06-23T00:00:00.000Z");
     expect(scheduleSentenceReview("correct", reviewedAt).nextReviewAt.toISOString()).toBe("2026-06-27T00:00:00.000Z");
     expect(scheduleSentenceReview("easy", reviewedAt).nextReviewAt.toISOString()).toBe("2026-07-04T00:00:00.000Z");
+  });
+
+  it("groups saved lessons by language in a preferred order", () => {
+    const groups = groupLessonsByLanguage([
+      { id: "3", language: "vi", baseLanguage: "en", title: "Vietnamese", description: null, level: null, tags: [], sentenceCount: 1 },
+      { id: "1", language: "ko", baseLanguage: "en", title: "Korean", description: null, level: null, tags: [], sentenceCount: 2 },
+      { id: "2", language: "ja", baseLanguage: "en", title: "Japanese", description: null, level: null, tags: [], sentenceCount: 3 },
+      { id: "4", language: "fr", baseLanguage: "en", title: "French", description: null, level: null, tags: [], sentenceCount: 4 }
+    ]);
+
+    expect(groups.map((group) => group.language)).toEqual(["ko", "ja", "vi", "fr"]);
+    expect(groups[0].label).toBe("Korean");
+    expect(formatLanguageLabel("zh")).toBe("Chinese");
   });
 });
 

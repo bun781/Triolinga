@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { ImportHelpPanel } from "@/components/language/ImportHelpPanel";
 import { ImportPreview } from "@/components/language/ImportPreview";
 import type {
   LessonChunkInput,
@@ -367,12 +368,12 @@ export default function LessonImportsPage() {
       <div className="topbar">
         <div>
           <h1>Lesson Builder</h1>
-          <p className="muted">Create import-ready lessons by selecting sentence text and attaching vocabulary, grammar, or chunk notes.</p>
+          <p className="muted">Create lesson files, validate the JSON, and save lessons with vocabulary, grammar, and chunk notes.</p>
         </div>
         <div className="row compact-row">
           <button className="button secondary" type="button" onClick={loadSample}>
             <Sparkles size={18} />
-            Sample
+            Sample lesson
           </button>
           <label className="button secondary">
             <FileJson size={18} />
@@ -382,7 +383,7 @@ export default function LessonImportsPage() {
         </div>
       </div>
 
-      <div className="mode-tabs" role="tablist" aria-label="Import mode">
+      <div className="mode-tabs" role="tablist" aria-label="Lesson editor mode">
         <button className={mode === "builder" ? "active" : ""} type="button" onClick={() => setMode("builder")}>
           <BookOpen size={17} />
           Builder
@@ -609,22 +610,24 @@ export default function LessonImportsPage() {
         </section>
       )}
 
+      <ImportHelpPanel />
+
       <section className="card action-bar">
         <div>
           <strong>{lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}</strong>
-          <p className="muted">Preview validates surfaces before saving.</p>
+          <p className="muted">Validation checks surfaces before the lesson is saved.</p>
         </div>
         <div className="row compact-row">
           <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("validate")}>
-            Validate
+            Check lesson
           </button>
           <button className="button secondary" type="button" disabled={loading} onClick={() => requestPreview("preview")}>
             <Upload size={18} />
-            {loading ? "Checking" : "Preview"}
+            {loading ? "Checking" : "Preview lesson"}
           </button>
           <button className="button" type="button" disabled={importing} onClick={importLesson}>
             <Save size={18} />
-            {importing ? "Saving" : "Save Lesson"}
+            {importing ? "Saving" : "Save lesson"}
           </button>
         </div>
       </section>
@@ -640,7 +643,7 @@ export default function LessonImportsPage() {
 
       {summary ? (
         <section className="card stack">
-          <h2>Import Summary</h2>
+          <h2>Save Summary</h2>
           <pre className="summary-json">{JSON.stringify(summary, null, 2)}</pre>
         </section>
       ) : null}

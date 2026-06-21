@@ -409,6 +409,93 @@ textarea.input {
   margin-top: 20px;
 }
 
+/* ── Import help / language browser ─────────────────────── */
+
+.import-help-panel,
+.language-browser {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 242, 237, 0.86));
+}
+
+.import-help-tabs {
+  margin-bottom: 0;
+}
+
+.help-section {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.help-list {
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.help-list li::marker {
+  color: var(--accent);
+}
+
+.help-examples {
+  display: grid;
+  gap: 12px;
+}
+
+.help-example {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.help-example .pill {
+  white-space: nowrap;
+}
+
+.help-code {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.language-tabs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.language-tabs button {
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 10px 12px;
+  text-align: left;
+  transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+
+.language-tabs button small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.language-tabs button.active {
+  background: var(--surface-muted);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.language-tabs button.active small {
+  color: var(--ink);
+}
+
 /* ── Notices / status ───────────────────────────────────── */
 
 .notice,

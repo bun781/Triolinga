@@ -7,6 +7,7 @@ import type {
   StudyLesson,
   StudyLessonMeta
 } from "@/lib/imported-content/types";
+import { formatLanguageLabel, groupLessonsByLanguage } from "@/lib/language/importResources";
 import { CheckpointQuiz } from "./CheckpointQuiz";
 import { SentenceFlashcard } from "./SentenceFlashcard";
 
@@ -24,15 +25,19 @@ const DEFAULT_REVEAL: RevealState = {
 
 export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Props) {
   const [lesson, setLesson] = useState(initialLesson);
+  const [selectedLanguage, setSelectedLanguage] = useState(initialLesson?.language ?? allLessons[0]?.language ?? "");
   const [cardIndex, setCardIndex] = useState(0);
   const [quizPendingAt, setQuizPendingAt] = useState<number | null>(null);
   const [reveal, setReveal] = useState<RevealState>(DEFAULT_REVEAL);
   const [sessionFamiliarity, setSessionFamiliarity] = useState<Map<string, ItemFamiliarity>>(new Map());
   const [cardGrades, setCardGrades] = useState<Map<number, string>>(new Map());
   const [loadingLesson, setLoadingLesson] = useState(false);
+  const languageGroups = groupLessonsByLanguage(allLessons);
 
   const sentence = lesson?.sentences[cardIndex] ?? null;
   const total = lesson?.sentences.length ?? 0;
+  const activeLanguageGroup = languageGroups.find((group) => group.language === selectedLanguage) ?? languageGroups[0] ?? null;
+  const languageLessons = activeLanguageGroup?.lessons ?? [];
 
   const handlePrev = useCallback(() => {
     setCardIndex((i) => Math.max(0, i - 1));
@@ -134,6 +139,7 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
       const data = (await res.json()) as { lesson: StudyLesson | null };
       if (data.lesson) {
         setLesson(data.lesson);
+        setSelectedLanguage(data.lesson.language);
         setCardIndex(0);
         setQuizPendingAt(null);
         setReveal(DEFAULT_REVEAL);
@@ -148,7 +154,7 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
   if (!lesson) {
     return (
       <section className="card stack">
-        <p className="muted">No imported lessons yet. Import a lesson to start studying.</p>
+        <p className="muted">No lessons yet. Save a lesson to start studying.</p>
       </section>
     );
   }
@@ -157,21 +163,48 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
 
   return (
     <div className="study-shell stack">
-      {allLessons.length > 1 ? (
-        <div className="lesson-picker">
-          <select
-            className="input"
-            value={lesson.id}
-            disabled={loadingLesson}
-            onChange={(e) => void switchLesson(e.target.value)}
-          >
-            {allLessons.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.title} ({l.sentenceCount} cards)
-              </option>
+      {languageGroups.length > 1 ? (
+        <section className="card stack language-browser">
+          <div className="row">
+            <div>
+              <h2>Languages</h2>
+              <p className="muted">Browse saved lessons by target language.</p>
+            </div>
+            <span className="pill">{languageGroups.length} languages</span>
+          </div>
+          <div className="language-tabs">
+            {languageGroups.map((group) => (
+              <button
+                className={group.language === selectedLanguage ? "active" : ""}
+                key={group.language}
+                type="button"
+                disabled={loadingLesson}
+                onClick={() => {
+                  const nextLesson = group.lessons[0];
+                  if (!nextLesson) return;
+                  void switchLesson(nextLesson.id);
+                }}
+              >
+                <span>{group.label}</span>
+                <small>{group.lessons.length}</small>
+              </button>
             ))}
-          </select>
-        </div>
+          </div>
+          {languageLessons.length > 1 ? (
+            <select
+              className="input"
+              value={lesson.id}
+              disabled={loadingLesson}
+              onChange={(e) => void switchLesson(e.target.value)}
+            >
+              {languageLessons.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.title} ({l.sentenceCount} cards)
+                </option>
+              ))}
+            </select>
+          ) : null}
+        </section>
       ) : null}
 
       {quizPendingAt !== null ? (

@@ -1,10 +1,10 @@
-# Lesson Import System
+# Lesson Builder System
 
 This document is a handoff guide for future agents working on the lesson import pipeline.
 
 ## Purpose
 
-The importer is the canonical content-ingestion path for:
+The lesson builder is the canonical content-ingestion path for:
 
 - vocabulary
 - grammar
@@ -18,11 +18,11 @@ Imported content must feed the real learning system. It is not allowed to live i
 
 ## Entry Points
 
-- Admin import UI: `/admin/imports`
+- Lesson Builder UI: `/admin/imports`
 - Legacy redirect: `/lessons/import`
 - Preview API: `POST /api/lessons/import/preview`
-- Import API: `POST /api/lessons/import`
-- Imported content demo page: `/study/imported-content`
+- Save API: `POST /api/lessons/import`
+- Lesson Library page: `/study/imported-content`
 
 ## JSON Contract
 
@@ -141,15 +141,16 @@ The demo page at `/study/imported-content` renders:
 
 ## UI Behavior
 
-The admin page at `/admin/imports` supports:
+The Lesson Builder at `/admin/imports` supports:
 
 - paste JSON
 - upload JSON file
 - load sample JSON
 - validate
 - preview
-- import
-- import summary
+- save
+- save summary
+- guide and prompt templates
 
 Preview shows:
 
@@ -177,6 +178,8 @@ Core tests live in `tests/unit/language-import.test.ts` and cover:
 - duplicate links
 - rollback on failure
 
+Prompt templates and guide content are stored in `lib/language/importResources.ts`.
+
 ## Extension Points
 
 If you need to extend the importer, these are the main files:
@@ -186,7 +189,8 @@ If you need to extend the importer, these are the main files:
 - persistence and preview: `lib/language/importLesson.ts`
 - content readback: `lib/language/importedContent.ts`
 - admin UI: `app/admin/imports/page.tsx`
-- demo reader: `app/study/imported-content/page.tsx`
+- lesson library: `app/study/imported-content/page.tsx`
+- guide and prompt content: `lib/language/importResources.ts`
 
 ## Known Limitations
 
@@ -202,4 +206,3 @@ If you need to extend the importer, these are the main files:
 - Add overwrite mode for controlled updates.
 - Add vocabulary, grammar, and chunk-specific SRS queues.
 - Reuse the same canonical records for quiz generation.
-
