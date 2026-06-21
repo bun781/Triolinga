@@ -72,6 +72,7 @@ export function SentenceFlashcard({
 
   const progress = ((cardIndex + 1) / totalCards) * 100;
   const hint = reveal.hint ? getHint(sentence) : null;
+  const revealInstruction = "Click or press Space to reveal";
 
   function toggleItem(item: SelectedItem) {
     const surface =
@@ -194,9 +195,16 @@ export function SentenceFlashcard({
             ? undefined
             : (e) => { if (e.key === "Enter" || e.key === " ") onRevealTranslation(); }
         }
-        aria-label={reveal.translation ? undefined : "Click to reveal translation"}
+        aria-label={reveal.translation ? undefined : revealInstruction}
       >
-        {reveal.translation ? sentence.translation : "···"}
+        {reveal.translation ? (
+          sentence.translation
+        ) : (
+          <>
+            <span className="translation-hidden-text" aria-hidden="true">{sentence.translation}</span>
+            <span className="translation-reveal-prompt">{revealInstruction}</span>
+          </>
+        )}
       </div>
 
       {/* Selected item details */}

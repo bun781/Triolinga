@@ -139,17 +139,14 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
   );
 
   const handleShuffle = useCallback(() => {
-    if (!cardOrder.length) return;
-    const currentId = cardOrder[cardIndex] ?? null;
-    const shuffled = shuffleIds(cardOrder);
-    const reordered = currentId
-      ? [currentId, ...shuffled.filter((id) => id !== currentId)]
-      : shuffled;
-    setCardOrder(reordered);
+    const sourceOrder = lesson?.sentences.map((s) => s.id) ?? [];
+    if (!sourceOrder.length) return;
+    setCardOrder(shuffleIds(sourceOrder));
     setCardIndex(0);
     setQuizPendingAt(null);
     setReveal(DEFAULT_REVEAL);
-  }, [cardIndex, cardOrder]);
+    setCardGrades(new Map());
+  }, [lesson]);
 
   const handleLessonReviewDecision = useCallback((reviewSentence: StudySentence, decision: ReviewDecision) => {
     setReviewStates((prev) => new Map(prev).set(reviewSentence.id, decision));
@@ -381,6 +378,9 @@ function shuffleIds(values: string[]): string[] {
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  if (copy.length > 1 && copy.every((id, index) => id === values[index])) {
+    copy.push(copy.shift() as string);
   }
   return copy;
 }

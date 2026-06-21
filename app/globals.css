@@ -1332,17 +1332,43 @@ textarea.input {
   font-size: 16px;
   min-height: 48px;
   padding: 12px 14px;
-  transition: filter 0.2s;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .translation-hidden {
+  align-items: center;
   cursor: pointer;
-  filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
   user-select: none;
 }
 
 .translation-hidden:hover {
-  filter: blur(4px);
+  border-color: rgba(181, 154, 106, 0.55);
+}
+
+.translation-hidden-text {
+  filter: blur(6px);
+  inset: 12px 14px;
+  opacity: 0.5;
+  overflow: hidden;
+  position: absolute;
+}
+
+.translation-reveal-prompt {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+  position: relative;
+  text-transform: uppercase;
 }
 
 /* ── Details panel ───────────────────────────────────────── */
