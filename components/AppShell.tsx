@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GuidedTour } from "@/components/system/GuidedTour";
 
 const navLinks: Array<{ href: Route<string>; label: string }> = [
   { href: "/admin/imports", label: "Lesson Builder" },
@@ -25,6 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={href}
               href={href}
+              data-tour={href === "/study/imported-content" ? "nav-library" : undefined}
               className={pathname === href || pathname.startsWith(href + "/") ? "nav-active" : ""}
             >
               {label}
@@ -33,6 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
       <main className="main">{children}</main>
+      <GuidedTour />
     </div>
   );
 }

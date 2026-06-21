@@ -46,39 +46,96 @@ export function generateQuizQuestion(
   recent: StudySentence[],
   all: StudySentence[]
 ): QuizQuestion | null {
-  const wordsWithMeanings = recent
-    .flatMap((s) => s.words.map((w) => ({ ...w, sentenceId: s.id, sentenceText: s.text })))
-    .filter((w) => w.meaning);
+  const deck = buildQuizDeck(recent, all);
+  return deck.length ? deck[Math.floor(Math.random() * deck.length)] : null;
+}
 
-  if (!wordsWithMeanings.length) return null;
+export function buildQuizDeck(recent: StudySentence[], all: StudySentence[]): QuizQuestion[] {
+  const wordQuestions = buildWordQuestions(recent, all);
+  const sentenceQuestions = buildSentenceQuestions(recent);
+  return shuffle([...wordQuestions, ...sentenceQuestions]);
+}
 
-  const target = wordsWithMeanings[Math.floor(Math.random() * wordsWithMeanings.length)];
+function buildWordQuestions(recent: StudySentence[], all: StudySentence[]): QuizQuestion[] {
+  const wordPool = recent.flatMap((sentence) =>
+    sentence.words
+      .filter((word) => word.meaning)
+      .map((word) => ({
+        sentenceId: sentence.id,
+        sentenceText: sentence.text,
+        surface: word.surface,
+        meaning: word.meaning as string,
+        canonicalKey: word.canonicalKey
+      }))
+  );
 
-  const distractors = [
-    ...new Set(
-      all
-        .flatMap((s) => s.words)
-        .filter((w) => w.meaning && w.canonicalKey !== target.canonicalKey)
-        .map((w) => w.meaning as string)
-    )
-  ].slice(0, 3);
-
-  if (distractors.length < 2) {
-    return {
-      type: "fill-blank",
-      prompt: target.sentenceText.replace(target.surface, "____"),
-      answer: target.surface,
-      sentenceId: target.sentenceId
-    };
+  const uniqueTargets = new Map<string, (typeof wordPool)[number]>();
+  for (const target of wordPool) {
+    const key = `${target.canonicalKey}:${target.meaning}`;
+    if (!uniqueTargets.has(key)) uniqueTargets.set(key, target);
   }
 
-  return {
-    type: "multiple-choice",
-    prompt: `What does "${target.surface}" mean?`,
-    options: shuffle([target.meaning as string, ...distractors.slice(0, 3)]),
-    answer: target.meaning as string,
-    sentenceId: target.sentenceId
-  };
+  const allMeanings = [
+    ...new Set(
+      all
+        .flatMap((sentence) => sentence.words)
+        .filter((word) => word.meaning)
+        .map((word) => word.meaning as string)
+    )
+  ];
+
+  const questions: QuizQuestion[] = [];
+
+  for (const target of uniqueTargets.values()) {
+    const distractors = allMeanings.filter((meaning) => meaning !== target.meaning).slice(0, 3);
+    if (distractors.length < 2) continue;
+
+    questions.push({
+      type: "multiple-choice",
+      prompt: `What does "${target.surface}" mean?`,
+      options: shuffle([target.meaning, ...distractors]),
+      answer: target.meaning,
+      sentenceId: target.sentenceId,
+      focusType: "word",
+      focusText: target.surface
+    });
+  }
+
+  return questions;
+}
+
+function buildSentenceQuestions(sentences: StudySentence[]): QuizQuestion[] {
+  const sentencePool = sentences
+    .filter((sentence) => sentence.translation)
+    .map((sentence) => ({
+      sentenceId: sentence.id,
+      prompt: `Which translation matches this sentence?`,
+      sentenceText: sentence.text,
+      answer: sentence.translation
+    }));
+
+  const translations = [
+    ...new Set(sentencePool.map((sentence) => sentence.answer))
+  ];
+
+  const questions: QuizQuestion[] = [];
+
+  for (const target of sentencePool) {
+    const distractors = translations.filter((translation) => translation !== target.answer).slice(0, 3);
+    if (distractors.length < 2) continue;
+
+    questions.push({
+      type: "multiple-choice",
+      prompt: target.prompt,
+      options: shuffle([target.answer, ...distractors]),
+      answer: target.answer,
+      sentenceId: target.sentenceId,
+      focusType: "sentence",
+      focusText: target.sentenceText
+    });
+  }
+
+  return questions;
 }
 
 function shuffle<T>(arr: T[]): T[] {

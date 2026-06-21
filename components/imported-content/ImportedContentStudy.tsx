@@ -242,7 +242,6 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
 
   return (
     <div className="study-shell stack">
-      {/* Compact selector + session stats */}
       <div className="lesson-selector-bar">
         {languageGroups.length > 1 ? (
           <select
@@ -286,6 +285,7 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
             <button
               type="button"
               className="button secondary lesson-review-toggle"
+              data-tour="study-start-review"
               disabled={loadingLesson}
               onClick={() => {
                 setQuizPendingAt(null);

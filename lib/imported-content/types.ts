@@ -75,4 +75,6 @@ export interface QuizQuestion {
   options?: string[];
   answer: string;
   sentenceId: string;
+  focusType?: "word" | "sentence";
+  focusText?: string;
 }

@@ -50,6 +50,7 @@ export function ProgressiveRevealControls({
       <Tooltip content="Reveal translation. Shortcut: Space.">
         <button
           type="button"
+          data-tour="study-translation"
           className={`button secondary${reveal.translation ? " active" : ""}`}
           onClick={onTranslation}
         >

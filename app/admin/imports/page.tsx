@@ -368,7 +368,7 @@ export default function LessonImportsPage() {
           <p className="muted">Create lesson files, validate the JSON, and save lessons with vocabulary, grammar, and chunk notes.</p>
         </div>
         <div className="row compact-row">
-          <button className="button secondary" type="button" onClick={loadSample}>
+          <button className="button secondary" type="button" data-tour="lesson-sample" onClick={loadSample}>
             <Sparkles size={18} />
             Sample lesson
           </button>
@@ -411,7 +411,7 @@ export default function LessonImportsPage() {
                 <Upload size={16} />
                 {loading ? "Checking…" : "Preview"}
               </button>
-              <button className="button compact-button" type="button" disabled={importing} onClick={importLesson}>
+              <button className="button compact-button" type="button" data-tour="lesson-save" disabled={importing} onClick={importLesson}>
                 <Save size={16} />
                 {importing ? "Saving…" : "Save"}
               </button>

@@ -849,6 +849,73 @@ textarea.input {
   font-weight: 600;
 }
 
+/* ── Guided tour ─────────────────────────────────────────── */
+
+.guided-tour-layer {
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 60;
+}
+
+.guided-tour-backdrop {
+  background: rgba(28, 25, 23, 0.38);
+  inset: 0;
+  position: absolute;
+}
+
+.guided-tour-spotlight {
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 9999px rgba(28, 25, 23, 0.32),
+    0 0 0 8px rgba(255, 255, 255, 0.14);
+  position: fixed;
+}
+
+.guided-tour-panel {
+  box-shadow: 0 24px 80px rgba(28, 25, 23, 0.24);
+  display: grid;
+  gap: 14px;
+  max-height: calc(100vh - 40px);
+  max-width: 360px;
+  overflow: auto;
+  pointer-events: auto;
+  position: fixed;
+}
+
+.guided-tour-panel h1 {
+  font-size: 22px;
+  max-width: 18ch;
+}
+
+.guided-tour-meta {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guided-tour-step {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guided-tour-note {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.guided-tour-actions {
+  margin-top: 2px;
+}
+
+.guided-tour-actions .button {
+  min-width: 0;
+}
+
 /* ── Interactive sentence ───────────────────────────────── */
 
 .sentence-text,
@@ -1593,6 +1660,13 @@ textarea.input {
   font-family: Georgia, serif;
   font-size: 18px;
   margin: 0;
+}
+
+.quiz-focus-text {
+  color: var(--muted);
+  font-family: Georgia, serif;
+  font-size: 20px;
+  margin: -6px 0 0;
 }
 
 .quiz-choices {
