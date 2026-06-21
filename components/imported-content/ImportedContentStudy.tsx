@@ -36,6 +36,7 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
   const [cardOrder, setCardOrder] = useState<string[]>(
     () => initialLesson?.sentences.map((s) => s.id) ?? []
   );
+  const [randomOrderEnabled, setRandomOrderEnabled] = useState(false);
   const [quizPendingAt, setQuizPendingAt] = useState<number | null>(null);
   const [reveal, setReveal] = useState<RevealState>(DEFAULT_REVEAL);
   const [sessionFamiliarity, setSessionFamiliarity] = useState<Map<string, ItemFamiliarity>>(new Map());
@@ -138,15 +139,27 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
     [applySentenceFamiliarity, sentence, sentenceId]
   );
 
-  const handleShuffle = useCallback(() => {
-    const sourceOrder = lesson?.sentences.map((s) => s.id) ?? [];
-    if (!sourceOrder.length) return;
-    setCardOrder(shuffleIds(sourceOrder));
+  const resetPass = useCallback((order: string[]) => {
+    setCardOrder(order);
     setCardIndex(0);
     setQuizPendingAt(null);
     setReveal(DEFAULT_REVEAL);
     setCardGrades(new Map());
-  }, [lesson]);
+  }, []);
+
+  const handleToggleRandomOrder = useCallback(() => {
+    const sourceOrder = lesson?.sentences.map((s) => s.id) ?? [];
+    if (!sourceOrder.length) return;
+    const nextEnabled = !randomOrderEnabled;
+    setRandomOrderEnabled(nextEnabled);
+    resetPass(nextEnabled ? shuffleIds(sourceOrder) : sourceOrder);
+  }, [lesson, randomOrderEnabled, resetPass]);
+
+  const handleRestart = useCallback(() => {
+    const sourceOrder = lesson?.sentences.map((s) => s.id) ?? [];
+    if (!sourceOrder.length) return;
+    resetPass(randomOrderEnabled ? shuffleIds(sourceOrder) : sourceOrder);
+  }, [lesson, randomOrderEnabled, resetPass]);
 
   const handleLessonReviewDecision = useCallback((reviewSentence: StudySentence, decision: ReviewDecision) => {
     setReviewStates((prev) => new Map(prev).set(reviewSentence.id, decision));
@@ -189,7 +202,8 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
         setLesson(next);
         setSelectedLanguage(next.language);
         setCardIndex(0);
-        setCardOrder(next.sentences.map((s) => s.id));
+        const sourceOrder = next.sentences.map((s) => s.id);
+        setCardOrder(randomOrderEnabled ? shuffleIds(sourceOrder) : sourceOrder);
         setQuizPendingAt(null);
         setReveal(DEFAULT_REVEAL);
         setSessionFamiliarity(new Map());
@@ -317,7 +331,7 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
           <div className="row">
             <div>
               <h2>Lesson complete</h2>
-              <p className="muted">You reached the end. Shuffle for another pass or restart.</p>
+              <p className="muted">You reached the end. Random order can be toggled for the next pass.</p>
             </div>
             <span className="pill">Done</span>
           </div>
@@ -329,13 +343,21 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
             {summary.failed > 0 && <span className="pill grade-stat-again">Again {summary.failed}</span>}
           </div>
           <div className="row compact-row" style={{ gap: 8 }}>
-            <button type="button" className="button secondary" onClick={handleShuffle}>Shuffle</button>
             <button
               type="button"
               className="button"
-              onClick={() => { setCardIndex(0); setQuizPendingAt(null); setReveal(DEFAULT_REVEAL); }}
+              onClick={handleRestart}
             >
               Restart
+            </button>
+            <button
+              type="button"
+              className={`button secondary random-order-toggle${randomOrderEnabled ? " active" : ""}`}
+              onClick={handleToggleRandomOrder}
+              aria-pressed={randomOrderEnabled}
+              title={randomOrderEnabled ? "Random order on" : "Random order off"}
+            >
+              Random order {randomOrderEnabled ? "On" : "Off"}
             </button>
           </div>
         </section>
@@ -360,7 +382,8 @@ export function ImportedContentStudy({ lesson: initialLesson, allLessons }: Prop
           onToggleGrammar={handleToggleGrammar}
           onToggleHint={handleToggleHint}
           onGrade={handleGrade}
-          onShuffle={handleShuffle}
+          randomOrderEnabled={randomOrderEnabled}
+          onToggleRandomOrder={handleToggleRandomOrder}
           onReview={(decision) => {
             if (decision === "remembered") review.markRemembered(activeSentence.id);
             else review.markNotRemembered(activeSentence.id);

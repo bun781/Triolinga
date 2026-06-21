@@ -30,7 +30,8 @@ interface Props {
   onToggleGrammar: () => void;
   onToggleHint: () => void;
   onGrade: (grade: "easy" | "correct" | "hard" | "failed") => void;
-  onShuffle: () => void;
+  randomOrderEnabled: boolean;
+  onToggleRandomOrder: () => void;
   onReview: (decision: ReviewDecision) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -62,7 +63,8 @@ export function SentenceFlashcard({
   onToggleGrammar,
   onToggleHint,
   onGrade,
-  onShuffle,
+  randomOrderEnabled,
+  onToggleRandomOrder,
   onReview,
   onPrev,
   onNext
@@ -230,8 +232,14 @@ export function SentenceFlashcard({
             </button>
           ))}
           <div className="grade-row-spacer" />
-          <button type="button" className="button secondary" onClick={onShuffle}>
-            Shuffle
+          <button
+            type="button"
+            className={`button secondary random-order-toggle${randomOrderEnabled ? " active" : ""}`}
+            onClick={onToggleRandomOrder}
+            aria-pressed={randomOrderEnabled}
+            title={randomOrderEnabled ? "Random order on" : "Random order off"}
+          >
+            Random order {randomOrderEnabled ? "On" : "Off"}
           </button>
         </div>
       ) : null}

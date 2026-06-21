@@ -1637,6 +1637,12 @@ textarea.input {
 .grade-btn.grade-hard.active  { background: rgba(181, 154, 106, 0.15); border-color: var(--accent); color: var(--accent); }
 .grade-btn.grade-failed.active { background: rgba(146, 64, 14, 0.1); border-color: var(--warn); color: var(--warn); }
 
+.random-order-toggle.active {
+  background: var(--surface-muted);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
 /* ── Review decision row ─────────────────────────────────── */
 
 .review-decision-row {
