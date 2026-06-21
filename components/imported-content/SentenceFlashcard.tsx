@@ -10,6 +10,7 @@ import { ProgressiveRevealControls } from "./ProgressiveRevealControls";
 import { RelatedSentences } from "./RelatedSentences";
 import { StudyDetailsPanel } from "./StudyDetailsPanel";
 import { AudioButton } from "@/components/ui/AudioButton";
+import { AnnotatedSentence } from "./AnnotatedSentence";
 
 interface Props {
   sentence: StudySentence;
@@ -110,7 +111,11 @@ export function SentenceFlashcard({
 
       {/* Sentence */}
       <div className="sentence-line">
-        <p className="sentence-text">{sentence.text}</p>
+        {reveal.translation ? (
+          <AnnotatedSentence sentence={sentence} />
+        ) : (
+          <p className="sentence-text">{sentence.text}</p>
+        )}
         <AudioButton sentence={sentence.text} language={language} compact />
       </div>
 
