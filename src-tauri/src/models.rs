@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonWordInput {
     pub surface: String,
@@ -10,7 +10,7 @@ pub struct LessonWordInput {
     pub explanation: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonGrammarInput {
     pub pattern: String,
@@ -19,7 +19,7 @@ pub struct LessonGrammarInput {
     pub explanation: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonChunkInput {
     pub surface: String,
@@ -31,7 +31,7 @@ pub struct LessonChunkInput {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonSentenceInput {
     pub text: String,
@@ -41,7 +41,7 @@ pub struct LessonSentenceInput {
     pub chunks: Option<Vec<LessonChunkInput>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonImportInput {
     pub language: String,
@@ -118,6 +118,7 @@ pub struct StudyLesson {
     pub base_language: String,
     pub title: String,
     pub description: Option<String>,
+    pub source: Option<String>,
     pub level: Option<String>,
     pub tags: Vec<String>,
     pub sentences: Vec<StudySentence>,
@@ -219,6 +220,7 @@ pub struct LessonImportPreviewResult {
 #[serde(rename_all = "camelCase")]
 pub struct LessonImportSummary {
     pub lesson_created: bool,
+    pub lesson_updated: bool,
     pub sentences_imported: i64,
     pub sentences_skipped: i64,
     pub vocabulary_created: i64,

@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import type { StudyLesson, StudyLessonMeta } from "@/lib/imported-content/types";
-import type { LessonImportPreviewResult, LessonImportSummary } from "@/lib/language/types";
+import type { LessonImportInput, LessonImportPreviewResult, LessonImportSummary } from "@/lib/language/types";
 import type { ReviewDecision, ReviewSentence } from "@/lib/review/types";
 
 export async function getLessons(): Promise<StudyLessonMeta[]> {
@@ -13,12 +13,16 @@ export async function getLesson(lessonId: string): Promise<StudyLesson | null> {
   return invoke("get_lesson", { lessonId });
 }
 
-export async function previewLessonImport(source: string): Promise<LessonImportPreviewResult> {
-  return invoke("preview_lesson_import", { source });
+export async function exportLesson(lessonId: string): Promise<LessonImportInput> {
+  return invoke("export_lesson", { lessonId });
 }
 
-export async function importLesson(source: string): Promise<LessonImportSummary> {
-  return invoke("import_lesson", { source });
+export async function previewLessonImport(source: string, lessonId?: string): Promise<LessonImportPreviewResult> {
+  return invoke("preview_lesson_import", { source, ...(lessonId ? { lessonId } : {}) });
+}
+
+export async function importLesson(source: string, lessonId?: string): Promise<LessonImportSummary> {
+  return invoke("import_lesson", { source, ...(lessonId ? { lessonId } : {}) });
 }
 
 export async function getReviewQueue(): Promise<ReviewSentence[]> {

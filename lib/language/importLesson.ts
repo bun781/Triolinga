@@ -80,6 +80,7 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
   if (duplicateLesson) {
     return {
       lessonCreated: false,
+      lessonUpdated: false,
       sentencesImported: 0,
       sentencesSkipped: 0,
       vocabularyCreated: 0,
@@ -98,6 +99,7 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
   if (plan.duplicateImport) {
     return {
       lessonCreated: false,
+      lessonUpdated: false,
       sentencesImported: 0,
       sentencesSkipped: 0,
       vocabularyCreated: 0,
@@ -114,6 +116,7 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
   if (plan.validationErrors.length) {
     return {
       lessonCreated: false,
+      lessonUpdated: false,
       sentencesImported: 0,
       sentencesSkipped: 0,
       vocabularyCreated: 0,
@@ -236,6 +239,7 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
 
     return {
       lessonCreated: Boolean(lessonRow?.id),
+      lessonUpdated: false,
       sentencesImported,
       sentencesSkipped,
       vocabularyCreated,

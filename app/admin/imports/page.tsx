@@ -16,8 +16,9 @@ import { AppShell } from "@/components/AppShell";
 import { ImportHelpPanel } from "@/components/language/ImportHelpPanel";
 import { ImportPreview } from "@/components/language/ImportPreview";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { importLesson as importLessonApi, previewLessonImport } from "@/lib/desktopApi";
+import { getLessons, importLesson as importLessonApi, previewLessonImport } from "@/lib/desktopApi";
 import { findLanguageOption, languageOptions } from "@/lib/language/importResources";
+import type { StudyLessonMeta } from "@/lib/imported-content/types";
 import type {
   LessonChunkInput,
   LessonGrammarInput,
@@ -98,6 +99,8 @@ const sampleLesson = `{
   ]
 }`;
 
+const LESSON_IMPORT_DRAFT_KEY = "fydor:lesson-import-draft";
+
 function createEmptySentence(): LessonSentenceInput {
   return {
     text: "",
@@ -147,8 +150,12 @@ export default function LessonImportsPage() {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [summary, setSummary] = useState<LessonImportSummary | null>(null);
+  const [lessonOptions, setLessonOptions] = useState<StudyLessonMeta[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(true);
+  const [targetLessonId, setTargetLessonId] = useState("new");
 
   const activeSentence = lesson.sentences[activeSentenceIndex] ?? createEmptySentence();
+  const appendingToExistingLesson = targetLessonId !== "new";
   const activeAnnotations = useMemo(
     () => [
       ...(activeSentence.words ?? []).map((item, index) => ({ kind: "word" as const, index, label: item.surface, detail: item.meaning })),
@@ -158,6 +165,33 @@ export default function LessonImportsPage() {
     [activeSentence]
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    getLessons()
+      .then((items) => {
+        if (!cancelled) setLessonOptions(items);
+      })
+      .catch((error) => {
+        if (!cancelled) setErrors([error instanceof Error ? error.message : "Unable to load lessons."]);
+      })
+      .finally(() => {
+        if (!cancelled) setLessonsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const importedSource = window.localStorage.getItem(LESSON_IMPORT_DRAFT_KEY);
+    if (!importedSource) return;
+
+    window.localStorage.removeItem(LESSON_IMPORT_DRAFT_KEY);
+    loadLessonSource(importedSource, "builder");
+  }, []);
+
   function syncLesson(nextLesson: LessonImportInput) {
     setLesson(nextLesson);
     setSource(stringifyLesson(nextLesson));
@@ -165,6 +199,25 @@ export default function LessonImportsPage() {
     setSummary(null);
     setStatus("");
     setErrors([]);
+  }
+
+  function loadLessonSource(text: string, fallbackMode: BuilderMode) {
+    setSource(text);
+    setTargetLessonId("new");
+    setActiveSentenceIndex(0);
+    setSelection(null);
+    setDraft(createDraft());
+    setPreview(null);
+    setErrors([]);
+    setStatus("");
+    setSummary(null);
+
+    try {
+      setLesson(JSON.parse(text) as LessonImportInput);
+      setMode("builder");
+    } catch {
+      setMode(fallbackMode);
+    }
   }
 
   function updateLessonField<K extends keyof LessonImportInput>(field: K, value: LessonImportInput[K]) {
@@ -282,14 +335,14 @@ export default function LessonImportsPage() {
   }
 
   async function requestPreview(modeLabel: "validate" | "preview") {
-    await withJsonSource(async (jsonSource) => {
+    await withJsonSource(async (jsonSource, lessonId) => {
       setLoading(true);
       setErrors([]);
       setStatus("");
       setSummary(null);
 
       try {
-        const nextPreview = await previewLessonImport(jsonSource);
+        const nextPreview = await previewLessonImport(jsonSource, lessonId);
         setPreview(nextPreview);
         setStatus(modeLabel === "validate" ? "Validation passed." : "Preview ready.");
       } catch (error) {
@@ -302,15 +355,15 @@ export default function LessonImportsPage() {
   }
 
   async function importLesson() {
-    await withJsonSource(async (jsonSource) => {
+    await withJsonSource(async (jsonSource, lessonId) => {
       setImporting(true);
       setErrors([]);
       setStatus("");
       try {
-        const result = await importLessonApi(jsonSource);
+        const result = await importLessonApi(jsonSource, lessonId);
         setPreview(null);
         setSummary(result);
-        setStatus("Lesson saved.");
+        setStatus(lessonId ? "Sentences appended." : "Lesson saved.");
       } catch (error) {
         setErrors([error instanceof Error ? error.message : "Unable to import lesson."]);
       } finally {
@@ -319,16 +372,18 @@ export default function LessonImportsPage() {
     });
   }
 
-  async function withJsonSource(callback: (jsonSource: string) => Promise<void>) {
+  async function withJsonSource(callback: (jsonSource: string, lessonId?: string) => Promise<void>) {
+    const lessonId = appendingToExistingLesson ? targetLessonId : undefined;
+
     if (mode === "builder") {
-      await callback(stringifyLesson(lesson));
+      await callback(stringifyLesson(lesson), lessonId);
       return;
     }
 
     try {
       const parsed = JSON.parse(source) as LessonImportInput;
       setLesson(parsed);
-      await callback(source);
+      await callback(source, lessonId);
     } catch {
       setErrors(["Invalid JSON."]);
     }
@@ -337,31 +392,13 @@ export default function LessonImportsPage() {
   async function readFile(file: File | undefined) {
     if (!file) return;
     const text = await file.text();
-    setSource(text);
-    try {
-      setLesson(JSON.parse(text) as LessonImportInput);
-      setMode("builder");
-      setActiveSentenceIndex(0);
-    } catch {
-      setMode("json");
-    }
-    setPreview(null);
-    setErrors([]);
-    setStatus("");
-    setSummary(null);
+    loadLessonSource(text, "json");
   }
 
+  const selectedLesson = lessonOptions.find((item) => item.id === targetLessonId) ?? null;
+
   function loadSample() {
-    setSource(sampleLesson);
-    setLesson(JSON.parse(sampleLesson) as LessonImportInput);
-    setMode("builder");
-    setActiveSentenceIndex(0);
-    setSelection(null);
-    setDraft(createDraft());
-    setPreview(null);
-    setErrors([]);
-    setStatus("");
-    setSummary(null);
+    loadLessonSource(sampleLesson, "builder");
   }
 
   return (
@@ -445,6 +482,30 @@ export default function LessonImportsPage() {
           <label className="field lesson-meta-description">
             <span>Description</span>
             <input className="input" value={lesson.description ?? ""} onChange={(event) => updateLessonField("description", event.target.value)} />
+          </label>
+          <label className="field lesson-meta-description">
+            <span>Import target</span>
+            <select
+              className="input"
+              disabled={lessonsLoading}
+              value={targetLessonId}
+              onChange={(event) => {
+                setTargetLessonId(event.target.value);
+                setPreview(null);
+                setSummary(null);
+                setStatus("");
+              }}
+            >
+              <option value="new">Create new lesson</option>
+              {lessonOptions.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title} ({item.language})
+                </option>
+              ))}
+            </select>
+            <span className="muted">
+              {selectedLesson ? "Imported sentences will be appended to the selected lesson." : "Choose an existing lesson to append sentences instead of creating a new lesson."}
+            </span>
           </label>
         </div>
       </section>
@@ -667,6 +728,7 @@ export default function LessonImportsPage() {
           <ImportPreview
             preview={preview}
             importing={importing}
+            approveLabel={appendingToExistingLesson ? "Append sentences" : "Save lesson"}
             onApprove={importLesson}
             onCancel={() => setPreview(null)}
           />

@@ -27,9 +27,18 @@ struct ImportPlan {
     source_hash: String,
     duplicate_import: bool,
     lesson: LessonImportInput,
+    target_lesson: Option<TargetLesson>,
     existing_items_by_key: HashMap<String, ExistingItem>,
     existing_sentences_by_text: HashMap<String, String>,
     candidate_items: Vec<CandidateItem>,
+}
+
+struct TargetLesson {
+    id: String,
+    language: String,
+    base_language: String,
+    existing_sentence_ids: HashSet<String>,
+    next_position: i64,
 }
 
 #[tauri::command]
@@ -45,18 +54,24 @@ pub fn get_lesson(lesson_id: String, state: State<db::AppState>) -> Result<Optio
 }
 
 #[tauri::command]
-pub fn preview_lesson_import(source: String, state: State<db::AppState>) -> Result<LessonImportPreviewResult, String> {
+pub fn export_lesson(lesson_id: String, state: State<db::AppState>) -> Result<LessonImportInput, String> {
+    let conn = state.conn.lock().map_err(|err| err.to_string())?;
+    export_lesson_inner(&conn, &lesson_id).map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+pub fn preview_lesson_import(source: String, lesson_id: Option<String>, state: State<db::AppState>) -> Result<LessonImportPreviewResult, String> {
     let conn = state.conn.lock().map_err(|err| err.to_string())?;
     let (lesson, raw_value) = parse_lesson_json(&source).map_err(|errors| errors.join("\n"))?;
-    let plan = build_import_plan(&conn, lesson, raw_value).map_err(|err| err.to_string())?;
+    let plan = build_import_plan(&conn, lesson, raw_value, lesson_id.as_deref()).map_err(|err| err.to_string())?;
     Ok(build_preview(&plan))
 }
 
 #[tauri::command]
-pub fn import_lesson(source: String, state: State<db::AppState>) -> Result<LessonImportSummary, String> {
+pub fn import_lesson(source: String, lesson_id: Option<String>, state: State<db::AppState>) -> Result<LessonImportSummary, String> {
     let mut conn = state.conn.lock().map_err(|err| err.to_string())?;
     let (lesson, raw_value) = parse_lesson_json(&source).map_err(|errors| errors.join("\n"))?;
-    let plan = build_import_plan(&conn, lesson, raw_value).map_err(|err| err.to_string())?;
+    let plan = build_import_plan(&conn, lesson, raw_value, lesson_id.as_deref()).map_err(|err| err.to_string())?;
 
     if plan.duplicate_import {
         return Ok(empty_summary_with_error("This lesson has already been imported."));
@@ -96,7 +111,7 @@ pub fn get_lessons_inner(conn: &Connection) -> Result<Vec<StudyLessonMeta>> {
 pub fn get_lesson_inner(conn: &Connection, lesson_id: &str) -> Result<Option<StudyLesson>> {
     let lesson = conn
         .query_row(
-            "SELECT id, target_language, base_language, title, description, level, tags FROM lessons WHERE id = ?1",
+            "SELECT id, target_language, base_language, title, description, source, level, tags FROM lessons WHERE id = ?1",
             [lesson_id],
             |row| {
                 Ok(StudyLesson {
@@ -105,8 +120,9 @@ pub fn get_lesson_inner(conn: &Connection, lesson_id: &str) -> Result<Option<Stu
                     base_language: row.get(2)?,
                     title: row.get(3)?,
                     description: row.get(4)?,
-                    level: row.get(5)?,
-                    tags: db::parse_json_array(row.get(6)?),
+                    source: row.get(5)?,
+                    level: row.get(6)?,
+                    tags: db::parse_json_array(row.get(7)?),
                     sentences: Vec::new(),
                 })
             },
@@ -147,6 +163,108 @@ pub fn get_lesson_inner(conn: &Connection, lesson_id: &str) -> Result<Option<Stu
     lesson.sentences = sentences;
 
     Ok(Some(lesson))
+}
+
+fn export_lesson_inner(conn: &Connection, lesson_id: &str) -> Result<LessonImportInput> {
+    let lesson = get_lesson_inner(conn, lesson_id)?
+        .ok_or_else(|| anyhow::anyhow!("Selected lesson was not found."))?;
+
+    Ok(LessonImportInput {
+        language: lesson.language,
+        base_language: lesson.base_language,
+        title: lesson.title,
+        description: lesson.description.and_then(non_empty_string),
+        source: lesson.source.and_then(non_empty_string),
+        level: lesson.level.and_then(non_empty_string),
+        tags: if lesson.tags.is_empty() { None } else { Some(lesson.tags) },
+        sentences: lesson
+            .sentences
+            .into_iter()
+            .map(|sentence| LessonSentenceInput {
+                text: sentence.text,
+                translation: non_empty_string(sentence.translation),
+                words: if sentence.words.is_empty() {
+                    None
+                } else {
+                    Some(
+                        sentence
+                            .words
+                            .into_iter()
+                            .map(|word| {
+                                let surface = word.surface;
+                                let display_text = word.display_text;
+                                let meaning = word.meaning;
+                                let explanation = word.explanation;
+                                LessonWordInput {
+                                    surface: surface.clone(),
+                                    lemma: if display_text == surface {
+                                        None
+                                    } else {
+                                        non_empty_string(display_text)
+                                    },
+                                    meaning: meaning.and_then(non_empty_string),
+                                    role: None,
+                                    explanation: explanation.and_then(non_empty_string),
+                                }
+                            })
+                            .collect(),
+                    )
+                },
+                grammar: if sentence.grammar.is_empty() {
+                    None
+                } else {
+                    Some(
+                        sentence
+                            .grammar
+                            .into_iter()
+                            .map(|grammar| {
+                                let pattern = grammar.pattern;
+                                let surface_text = grammar.surface_text;
+                                let meaning = grammar.meaning;
+                                let explanation = grammar.explanation;
+                                LessonGrammarInput {
+                                    pattern: pattern.clone(),
+                                    surface: if surface_text == pattern {
+                                        None
+                                    } else {
+                                        non_empty_string(surface_text)
+                                    },
+                                    meaning: meaning.and_then(non_empty_string),
+                                    explanation: explanation.and_then(non_empty_string),
+                                }
+                            })
+                            .collect(),
+                    )
+                },
+                chunks: if sentence.chunks.is_empty() {
+                    None
+                } else {
+                    Some(
+                        sentence
+                            .chunks
+                            .into_iter()
+                            .map(|chunk| LessonChunkInput {
+                                surface: chunk.surface_text,
+                                meaning: chunk.meaning.and_then(non_empty_string),
+                                explanation: chunk.explanation.and_then(non_empty_string),
+                                item_type: None,
+                                level: None,
+                                tags: None,
+                            })
+                            .collect(),
+                    )
+                },
+            })
+            .collect(),
+    })
+}
+
+fn non_empty_string(value: String) -> Option<String> {
+    if value.trim().is_empty() {
+        None
+    } else {
+        Some(value)
+    }
 }
 
 fn load_words(conn: &Connection, sentence_id: &str) -> Result<Vec<StudyWord>> {
@@ -267,12 +385,21 @@ fn parse_lesson_json(source: &str) -> Result<(LessonImportInput, Value), Vec<Str
     }
 }
 
-fn build_import_plan(conn: &Connection, lesson: LessonImportInput, raw_value: Value) -> Result<ImportPlan> {
+fn build_import_plan(conn: &Connection, lesson: LessonImportInput, raw_value: Value, target_lesson_id: Option<&str>) -> Result<ImportPlan> {
     let source_hash = normalize::hash_json_value(&raw_value);
-    let duplicate_import = conn
-        .query_row("SELECT id FROM lessons WHERE source_hash = ?1 LIMIT 1", [&source_hash], |_| Ok(()))
-        .optional()?
-        .is_some();
+    let target_lesson = if let Some(target_lesson_id) = target_lesson_id {
+        Some(load_target_lesson(conn, target_lesson_id, &lesson)?)
+    } else {
+        None
+    };
+    let duplicate_import = if target_lesson.is_some() {
+        false
+    } else {
+        conn
+            .query_row("SELECT id FROM lessons WHERE source_hash = ?1 LIMIT 1", [&source_hash], |_| Ok(()))
+            .optional()?
+            .is_some()
+    };
 
     let normalized_texts = lesson
         .sentences
@@ -320,10 +447,58 @@ fn build_import_plan(conn: &Connection, lesson: LessonImportInput, raw_value: Va
         source_hash,
         duplicate_import,
         lesson,
+        target_lesson,
         existing_items_by_key,
         existing_sentences_by_text,
         candidate_items,
     })
+}
+
+fn load_target_lesson(conn: &Connection, lesson_id: &str, source_lesson: &LessonImportInput) -> Result<TargetLesson> {
+    let target = conn
+        .query_row(
+            "SELECT id, target_language, base_language FROM lessons WHERE id = ?1",
+            [lesson_id],
+            |row| {
+                Ok(TargetLesson {
+                    id: row.get(0)?,
+                    language: row.get(1)?,
+                    base_language: row.get(2)?,
+                    existing_sentence_ids: HashSet::new(),
+                    next_position: 0,
+                })
+            },
+        )
+        .optional()?;
+
+    let Some(mut target) = target else {
+        return Err(anyhow::anyhow!("Selected lesson was not found."));
+    };
+
+    if target.language != source_lesson.language || target.base_language != source_lesson.base_language {
+        return Err(anyhow::anyhow!(
+            "The selected lesson uses {} → {}, but the import source uses {} → {}.",
+            target.language,
+            target.base_language,
+            source_lesson.language,
+            source_lesson.base_language
+        ));
+    }
+
+    let mut stmt = conn.prepare("SELECT sentence_id FROM lesson_sentences WHERE lesson_id = ?1")?;
+    let rows = stmt.query_map([lesson_id], |row| row.get::<_, String>(0))?;
+    let existing_sentence_ids = rows.collect::<rusqlite::Result<HashSet<_>>>()?;
+
+    let next_position = conn
+        .query_row(
+            "SELECT COALESCE(MAX(position), -1) + 1 FROM lesson_sentences WHERE lesson_id = ?1",
+            [lesson_id],
+            |row| row.get::<_, i64>(0),
+        )?;
+
+    target.existing_sentence_ids = existing_sentence_ids;
+    target.next_position = next_position;
+    Ok(target)
 }
 
 fn build_preview(plan: &ImportPlan) -> LessonImportPreviewResult {
@@ -366,26 +541,31 @@ fn build_preview(plan: &ImportPlan) -> LessonImportPreviewResult {
 fn import_plan(conn: &mut Connection, plan: ImportPlan) -> Result<LessonImportSummary> {
     let tx = conn.transaction()?;
     let now = db::now();
-    let lesson_id = db::id();
-    tx.execute(
-        r#"
-        INSERT INTO lessons
-        (id, target_language, base_language, description, source, level, title, source_hash, tags, imported_at, created_at, updated_at)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?10)
-        "#,
-        params![
-            lesson_id,
-            plan.lesson.language,
-            plan.lesson.base_language,
-            plan.lesson.description,
-            plan.lesson.source,
-            plan.lesson.level,
-            plan.lesson.title,
-            plan.source_hash,
-            db::json_array(&plan.lesson.tags.clone().unwrap_or_default()),
-            now,
-        ],
-    )?;
+    let lesson_id = if let Some(target_lesson) = &plan.target_lesson {
+        target_lesson.id.clone()
+    } else {
+        let lesson_id = db::id();
+        tx.execute(
+            r#"
+            INSERT INTO lessons
+            (id, target_language, base_language, description, source, level, title, source_hash, tags, imported_at, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?10)
+            "#,
+            params![
+                lesson_id,
+                plan.lesson.language,
+                plan.lesson.base_language,
+                plan.lesson.description,
+                plan.lesson.source,
+                plan.lesson.level,
+                plan.lesson.title,
+                plan.source_hash,
+                db::json_array(&plan.lesson.tags.clone().unwrap_or_default()),
+                now,
+            ],
+        )?;
+        lesson_id
+    };
 
     let mut item_id_by_key = HashMap::new();
     for item in plan.existing_items_by_key.values() {
@@ -435,6 +615,7 @@ fn import_plan(conn: &mut Connection, plan: ImportPlan) -> Result<LessonImportSu
     let mut sentences_imported = 0;
     let mut sentences_skipped = 0;
     let mut links_created = 0;
+    let mut next_position = plan.target_lesson.as_ref().map(|target| target.next_position).unwrap_or(0);
 
     for (index, sentence) in plan.lesson.sentences.iter().enumerate() {
         let normalized = normalize::normalize_sentence_text(&sentence.text);
@@ -463,18 +644,31 @@ fn import_plan(conn: &mut Connection, plan: ImportPlan) -> Result<LessonImportSu
             sentence_id
         };
 
-        tx.execute(
-            "INSERT INTO lesson_sentences (id, lesson_id, sentence_id, position, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
-            params![db::id(), lesson_id, sentence_id, index as i64, db::now()],
-        )?;
-        links_created += 1;
+        let should_link_sentence = plan
+            .target_lesson
+            .as_ref()
+            .map(|target| !target.existing_sentence_ids.contains(&sentence_id))
+            .unwrap_or(true);
+
+        if should_link_sentence {
+            let position = if plan.target_lesson.is_some() { next_position } else { index as i64 };
+            tx.execute(
+                "INSERT INTO lesson_sentences (id, lesson_id, sentence_id, position, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+                params![db::id(), lesson_id, sentence_id, position, db::now()],
+            )?;
+            links_created += 1;
+            if plan.target_lesson.is_some() {
+                next_position += 1;
+            }
+        }
         links_created += create_sentence_item_links(&tx, &plan.lesson.language, &sentence_id, sentence, &item_id_by_key)?;
     }
 
     tx.commit()?;
 
     Ok(LessonImportSummary {
-        lesson_created: true,
+        lesson_created: plan.target_lesson.is_none(),
+        lesson_updated: plan.target_lesson.is_some(),
         sentences_imported,
         sentences_skipped,
         vocabulary_created: summary_counts.0,
@@ -736,6 +930,7 @@ fn chunk_output(chunk: &LessonChunkInput) -> LessonChunkOutput {
 fn empty_summary_with_error(error: &str) -> LessonImportSummary {
     LessonImportSummary {
         lesson_created: false,
+        lesson_updated: false,
         sentences_imported: 0,
         sentences_skipped: 0,
         vocabulary_created: 0,

@@ -43,6 +43,7 @@ export async function getLatestImportedLessonContent(): Promise<ImportedLessonCo
       baseLanguage: lessons.baseLanguage,
       title: lessons.title,
       description: lessons.description,
+      source: lessons.source,
       level: lessons.level,
       tags: lessons.tags
     })
@@ -145,6 +146,7 @@ export async function getAllLessonsMeta(): Promise<StudyLessonMeta[]> {
       baseLanguage: lessons.baseLanguage,
       title: lessons.title,
       description: lessons.description,
+      source: lessons.source,
       level: lessons.level,
       tags: lessons.tags
     })
@@ -178,6 +180,7 @@ export async function getLessonContentById(lessonId: string): Promise<StudyLesso
       baseLanguage: lessons.baseLanguage,
       title: lessons.title,
       description: lessons.description,
+      source: lessons.source,
       level: lessons.level,
       tags: lessons.tags
     })

@@ -91,6 +91,7 @@ export interface LessonImportPreviewResult {
 
 export interface LessonImportSummary {
   lessonCreated: boolean;
+  lessonUpdated: boolean;
   sentencesImported: number;
   sentencesSkipped: number;
   vocabularyCreated: number;

@@ -50,6 +50,7 @@ export interface StudyLesson {
   baseLanguage: string;
   title: string;
   description: string | null;
+  source: string | null;
   level: string | null;
   tags: string[];
   sentences: StudySentence[];

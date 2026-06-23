@@ -7,11 +7,12 @@ import type { LessonImportPreviewItem, LessonImportPreviewResult } from "@/lib/l
 interface ImportPreviewProps {
   preview: LessonImportPreviewResult;
   importing: boolean;
+  approveLabel?: string;
   onApprove: () => void;
   onCancel: () => void;
 }
 
-export function ImportPreview({ preview, importing, onApprove, onCancel }: ImportPreviewProps) {
+export function ImportPreview({ preview, importing, approveLabel = "Save lesson", onApprove, onCancel }: ImportPreviewProps) {
   const blocked = preview.duplicateImport || preview.validationErrors.length > 0;
 
   return (
@@ -92,7 +93,7 @@ export function ImportPreview({ preview, importing, onApprove, onCancel }: Impor
         </button>
         <button className="button" type="button" disabled={blocked || importing} onClick={onApprove}>
           <Check size={18} />
-          {importing ? "Saving" : "Save lesson"}
+          {importing ? "Saving" : approveLabel}
         </button>
       </div>
     </div>

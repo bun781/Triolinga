@@ -49,6 +49,7 @@ describe("lesson import validation", () => {
     const summary = await importApprovedLesson(parsed.lesson!);
     expect(summary).toEqual({
       lessonCreated: true,
+      lessonUpdated: false,
       sentencesImported: 1,
       sentencesSkipped: 0,
       vocabularyCreated: 1,
