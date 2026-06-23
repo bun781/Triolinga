@@ -31,7 +31,7 @@ const tourSteps: TourStep[] = [
     route: "/admin/imports",
     section: "Start here",
     title: "Fydor turns lessons into study cards",
-    description: "The usual flow is: make or paste a lesson, check it, save it, then study it from the library.",
+    description: "The usual flow is: make or paste a lesson, check it, save it, then study it from saved lessons.",
     details: [
       "A lesson is built from sentences, translations, vocabulary, grammar notes, and useful phrase chunks.",
       "You can write those details yourself or ask an AI assistant to prepare the lesson JSON for you.",
@@ -129,10 +129,10 @@ const tourSteps: TourStep[] = [
     route: "/admin/imports",
     section: "Check and Save",
     title: "Save the lesson",
-    description: "When the lesson looks right, save it so it appears in your local lesson library.",
+    description: "When the lesson looks right, save it so it appears in your saved lessons.",
     details: [
-      "Saved lessons stay in your local library.",
-      "After saving, go to Lesson Library to study the lesson sentence by sentence.",
+      "Saved lessons stay on your device.",
+      "After saving, go to Saved Lessons to study the lesson sentence by sentence.",
       "You can come back later and import more lessons for the same language."
     ],
     targetSelectors: ['[data-tour="lesson-save"]'],
@@ -142,10 +142,10 @@ const tourSteps: TourStep[] = [
   {
     route: "/study/imported-content",
     section: "Study",
-    title: "Open the Lesson Library",
+    title: "Open Saved Lessons",
     description: "This sidebar link takes you from lesson building to studying the lessons you saved.",
     details: [
-      "If the library is empty, Fydor will point you back to the builder.",
+      "If saved lessons are empty, Fydor will point you back to the builder.",
       "Once lessons exist, you can choose a language and lesson from the selectors.",
       "Use this page for focused sentence-by-sentence study."
     ],

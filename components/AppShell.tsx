@@ -7,7 +7,8 @@ import { GuidedTour, replayGuidedTour } from "@/components/system/GuidedTour";
 
 const navLinks: Array<{ href: Route<string>; label: string }> = [
   { href: "/admin/imports", label: "Lesson Builder" },
-  { href: "/study/imported-content", label: "Lesson Library" },
+  { href: "/study/imported-content", label: "Saved Lessons" },
+  { href: "/study/fill-blank", label: "Fill Blank" },
   { href: "/study/multiple-choice", label: "Multiple Choice" }
 ];
 

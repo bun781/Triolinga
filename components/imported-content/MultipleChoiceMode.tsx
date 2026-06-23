@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AudioButton } from "@/components/ui/AudioButton";
 import type { StudyLesson } from "@/lib/imported-content/types";
 import { buildQuizDeck } from "@/lib/imported-content/study-utils";
 
@@ -126,7 +127,17 @@ export function MultipleChoiceMode({ lesson }: Props) {
           </div>
 
           <p className="quiz-prompt">{question.prompt}</p>
-          {question.focusText ? <p className="quiz-focus-text">{question.focusText}</p> : null}
+          {question.focusText ? (
+            <div className="sentence-line quiz-focus-row">
+              <p className="quiz-focus-text">{question.focusText}</p>
+              <AudioButton
+                sentence={question.focusText}
+                language={lesson.language}
+                compact
+                label={`Play ${question.focusType === "word" ? "word" : "sentence"} aloud`}
+              />
+            </div>
+          ) : null}
 
           {question.type === "multiple-choice" && question.options ? (
             <div className="quiz-choices">

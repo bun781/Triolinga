@@ -7,8 +7,9 @@ import type { StudyLessonMeta } from "@/lib/imported-content/types";
 import { useImportedLessonBrowser } from "./useImportedLessonBrowser";
 import { ImportedContentStudy } from "./ImportedContentStudy";
 import { MultipleChoiceMode } from "./MultipleChoiceMode";
+import { FillBlankMode } from "./FillBlankMode";
 
-type StudyMode = "lesson" | "multiple-choice";
+type StudyMode = "lesson" | "fill-blank" | "multiple-choice";
 
 interface Props {
   mode?: StudyMode;
@@ -16,8 +17,12 @@ interface Props {
 
 const modeContent: Record<StudyMode, { title: string; description: string }> = {
   lesson: {
-    title: "Lesson Library",
+    title: "Saved Lessons",
     description: "Study and review saved lessons sentence by sentence."
+  },
+  "fill-blank": {
+    title: "Fill Blank",
+    description: "Practice active recall by filling missing words, grammar patterns, and chunks."
   },
   "multiple-choice": {
     title: "Multiple Choice",
@@ -58,7 +63,7 @@ export function ImportedContentWorkspace({ mode = "lesson" }: Props) {
   const browser = useImportedLessonBrowser(null, allLessons);
 
   if (loading) {
-    return <PageState eyebrow="Loading" title="Loading lessons" description="Opening your local lesson library." />;
+    return <PageState eyebrow="Loading" title="Loading lessons" description="Opening your saved lessons." />;
   }
 
   if (error) {
@@ -66,7 +71,7 @@ export function ImportedContentWorkspace({ mode = "lesson" }: Props) {
       <PageState
         eyebrow="Storage error"
         tone="error"
-        title="Lesson Library failed to load"
+        title="Saved Lessons failed to load"
         description={error}
         actions={<a className="button" href="/study/imported-content">Retry</a>}
       />
@@ -77,7 +82,7 @@ export function ImportedContentWorkspace({ mode = "lesson" }: Props) {
     return (
       <PageState
         eyebrow="No data yet"
-        title="No lessons in the library"
+        title="No saved lessons yet"
         description="Save a lesson first. When lessons exist, this page will show them grouped by language and let you study them sentence by sentence."
         actions={<a className="button" href="/admin/imports">Import a lesson</a>}
       />
@@ -131,6 +136,8 @@ export function ImportedContentWorkspace({ mode = "lesson" }: Props) {
 
       {mode === "lesson" ? (
         <ImportedContentStudy lesson={browser.lesson} loadingLesson={browser.loadingLesson} />
+      ) : mode === "fill-blank" ? (
+        <FillBlankMode lesson={browser.lesson} />
       ) : (
         <MultipleChoiceMode lesson={browser.lesson} />
       )}

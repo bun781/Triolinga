@@ -98,13 +98,15 @@ const sampleLesson = `{
   ]
 }`;
 
-const emptySentence: LessonSentenceInput = {
-  text: "",
-  translation: "",
-  words: [],
-  grammar: [],
-  chunks: []
-};
+function createEmptySentence(): LessonSentenceInput {
+  return {
+    text: "",
+    translation: "",
+    words: [],
+    grammar: [],
+    chunks: []
+  };
+}
 
 const initialLesson: LessonImportInput = {
   language: "ko",
@@ -114,7 +116,7 @@ const initialLesson: LessonImportInput = {
   source: "lesson_builder",
   level: "beginner",
   tags: [],
-  sentences: [{ ...emptySentence }]
+  sentences: [createEmptySentence()]
 };
 
 function createDraft(surface = ""): AnnotationDraft {
@@ -146,7 +148,7 @@ export default function LessonImportsPage() {
   const [importing, setImporting] = useState(false);
   const [summary, setSummary] = useState<LessonImportSummary | null>(null);
 
-  const activeSentence = lesson.sentences[activeSentenceIndex] ?? emptySentence;
+  const activeSentence = lesson.sentences[activeSentenceIndex] ?? createEmptySentence();
   const activeAnnotations = useMemo(
     () => [
       ...(activeSentence.words ?? []).map((item, index) => ({ kind: "word" as const, index, label: item.surface, detail: item.meaning })),
@@ -178,10 +180,12 @@ export default function LessonImportsPage() {
     setDraft(createDraft());
   }
 
-  function addSentence() {
-    const nextLesson = { ...lesson, sentences: [...lesson.sentences, { ...emptySentence }] };
-    syncLesson(nextLesson);
-    setActiveSentenceIndex(nextLesson.sentences.length - 1);
+  function addSentence(afterIndex = activeSentenceIndex) {
+    const nextSentence = createEmptySentence();
+    const sentences = [...lesson.sentences];
+    sentences.splice(Math.min(afterIndex + 1, sentences.length), 0, nextSentence);
+    syncLesson({ ...lesson, sentences });
+    setActiveSentenceIndex(Math.min(afterIndex + 1, sentences.length - 1));
     setSelection(null);
     setDraft(createDraft());
   }
@@ -452,9 +456,14 @@ export default function LessonImportsPage() {
               <section className="card stack">
                 <div className="row">
                   <h2>Sentences</h2>
-                  <button className="button secondary" type="button" onClick={addSentence}>
+                  <button
+                    className="button secondary"
+                    type="button"
+                    title="Add a new sentence after the active one"
+                    onClick={() => addSentence()}
+                  >
                     <Plus size={18} />
-                    Add
+                    Add sentence
                   </button>
                 </div>
                 <div className="sentence-tabs">
@@ -491,6 +500,16 @@ export default function LessonImportsPage() {
                       onClick={() => removeSentence(activeSentenceIndex)}
                     >
                       <Trash2 size={18} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Add a sentence after this one.">
+                    <button
+                      className="icon-button"
+                      type="button"
+                      aria-label="Add sentence after this one"
+                      onClick={() => addSentence(activeSentenceIndex)}
+                    >
+                      <Plus size={18} />
                     </button>
                   </Tooltip>
                 </div>

@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { ItemFamiliarity, RevealState, SelectedItem, StudySentence } from "@/lib/imported-content/types";
 import type { ReviewDecision } from "@/lib/review/types";
-import { buildClozeCandidates, getHint } from "@/lib/imported-content/study-utils";
-import { answersMatch } from "@/lib/imported-content/text-spans";
+import { getHint } from "@/lib/imported-content/study-utils";
 import { useSpeech } from "@/lib/useSpeech";
 import { InteractiveToken } from "./InteractiveToken";
 import { ProgressiveRevealControls } from "./ProgressiveRevealControls";
@@ -72,18 +71,11 @@ export function SentenceFlashcard({
   onNext
 }: Props) {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
-  const [clozeIndex, setClozeIndex] = useState(0);
-  const [clozeAnswer, setClozeAnswer] = useState("");
-  const [clozeResult, setClozeResult] = useState<"correct" | "incorrect" | null>(null);
-  const [dictationAnswer, setDictationAnswer] = useState("");
-  const [dictationResult, setDictationResult] = useState<"correct" | "incorrect" | null>(null);
   const speak = useSpeech(language);
 
   const progress = ((cardIndex + 1) / totalCards) * 100;
   const hint = reveal.hint ? getHint(sentence) : null;
   const revealInstruction = "Click or press Space to reveal";
-  const clozeCandidates = useMemo(() => buildClozeCandidates(sentence), [sentence]);
-  const clozeCandidate = clozeCandidates[clozeIndex % Math.max(1, clozeCandidates.length)] ?? null;
 
   function toggleItem(item: SelectedItem) {
     const surface =
@@ -102,27 +94,6 @@ export function SentenceFlashcard({
   function isSelected(kind: SelectedItem["kind"], key: string): boolean {
     if (!selectedItem || selectedItem.kind !== kind) return false;
     return selectedItem.data.canonicalKey === key;
-  }
-
-  function checkCloze() {
-    if (!clozeCandidate) return;
-    setClozeResult(answersMatch(clozeAnswer, clozeCandidate.answerText) ? "correct" : "incorrect");
-  }
-
-  function nextCloze() {
-    if (!clozeCandidates.length) return;
-    setClozeIndex((index) => (index + 1) % clozeCandidates.length);
-    setClozeAnswer("");
-    setClozeResult(null);
-  }
-
-  function checkDictation() {
-    setDictationResult(answersMatch(dictationAnswer, sentence.text) ? "correct" : "incorrect");
-  }
-
-  function resetDictation() {
-    setDictationAnswer("");
-    setDictationResult(null);
   }
 
   return (
@@ -219,83 +190,6 @@ export function SentenceFlashcard({
         onGrammar={onToggleGrammar}
         onTranslation={onRevealTranslation}
       />
-
-      <div className="practice-grid">
-        <section className="practice-panel stack">
-          <div className="row compact-row">
-            <div>
-              <h2>Cloze</h2>
-              <p className="muted">Fill the hidden focus item.</p>
-            </div>
-            {clozeCandidate ? <span className={`pill cloze-kind-${clozeCandidate.kind}`}>{clozeCandidate.kind}</span> : null}
-          </div>
-          {clozeCandidate ? (
-            <>
-              <p className="sentence-text practice-sentence">
-                <span>{sentence.text.slice(0, clozeCandidate.start)}</span>
-                <span className={`cloze-blank cloze-kind-${clozeCandidate.kind}`} aria-label="Hidden answer">
-                  {clozeResult === "correct" ? clozeCandidate.answerText : ""}
-                </span>
-                <span>{sentence.text.slice(clozeCandidate.end)}</span>
-              </p>
-              <div className="practice-answer-row">
-                <input
-                  className="input"
-                  value={clozeAnswer}
-                  placeholder={clozeCandidate.meaning ?? clozeCandidate.displayText}
-                  onChange={(event) => {
-                    setClozeAnswer(event.target.value);
-                    setClozeResult(null);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") checkCloze();
-                  }}
-                />
-                <button type="button" className="button secondary" onClick={checkCloze}>Check</button>
-              </div>
-              <div className="practice-feedback-row">
-                {clozeResult === "correct" ? <span className="practice-feedback correct">Correct</span> : null}
-                {clozeResult === "incorrect" ? (
-                  <span className="practice-feedback incorrect">Answer: {clozeCandidate.answerText}</span>
-                ) : null}
-                {clozeCandidates.length > 1 ? (
-                  <button type="button" className="button secondary compact-button" onClick={nextCloze}>Next blank</button>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <p className="muted">Add word, grammar, or chunk annotations to make cloze cards.</p>
-          )}
-        </section>
-
-        <section className="practice-panel stack">
-          <div className="row compact-row">
-            <div>
-              <h2>Dictation</h2>
-              <p className="muted">Listen, then type the sentence.</p>
-            </div>
-            <AudioButton sentence={sentence.text} language={language} label="Play dictation audio" compact />
-          </div>
-          <input
-            className="input"
-            value={dictationAnswer}
-            placeholder="Type what you hear"
-            onChange={(event) => {
-              setDictationAnswer(event.target.value);
-              setDictationResult(null);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") checkDictation();
-            }}
-          />
-          <div className="practice-feedback-row">
-            <button type="button" className="button secondary" onClick={checkDictation}>Check</button>
-            <button type="button" className="button secondary compact-button" onClick={resetDictation}>Clear</button>
-            {dictationResult === "correct" ? <span className="practice-feedback correct">Correct</span> : null}
-            {dictationResult === "incorrect" ? <span className="practice-feedback incorrect">Compare with the sentence above.</span> : null}
-          </div>
-        </section>
-      </div>
 
       {/* Translation */}
       <div

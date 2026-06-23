@@ -109,6 +109,7 @@ button, input, textarea, select {
 }
 
 .sidebar a {
+  display: block;
   border: none;
   border-radius: 0;
   color: var(--muted);
@@ -116,6 +117,7 @@ button, input, textarea, select {
   letter-spacing: 0.01em;
   padding: 7px 0;
   transition: color 0.1s;
+  width: 100%;
 }
 
 .sidebar a:hover {
@@ -123,8 +125,14 @@ button, input, textarea, select {
 }
 
 .sidebar a.nav-active {
+  background: linear-gradient(90deg, rgba(28, 25, 23, 0.12), rgba(28, 25, 23, 0.04));
+  border-left: 3px solid var(--ink);
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 600;
+  margin-left: -12px;
+  padding-left: 12px;
+  border-radius: 0 10px 10px 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .main {
@@ -1560,10 +1568,19 @@ textarea.input {
 
 /* ── Active practice panels ─────────────────────────────── */
 
-.practice-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.practice-tabs {
+  margin-bottom: 0;
+  width: fit-content;
+}
+
+.cloze-answer-tabs {
+  margin-bottom: 0;
+  width: fit-content;
+}
+
+.cloze-answer-tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 .practice-panel {
@@ -1582,6 +1599,45 @@ textarea.input {
 .practice-sentence {
   font-size: 18px;
   line-height: 1.8;
+}
+
+.cloze-context,
+.cloze-clue-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.cloze-context-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cloze-clue-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.cloze-clue-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.cloze-clue-card dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cloze-clue-card dd {
+  margin: 0;
 }
 
 .cloze-blank {
@@ -1607,6 +1663,34 @@ textarea.input {
 .cloze-kind-chunk {
   border-color: var(--chunk);
   color: var(--chunk);
+}
+
+.cloze-choice-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cloze-choice {
+  justify-content: flex-start;
+  min-height: 42px;
+  white-space: normal;
+}
+
+.cloze-choice.selected {
+  border-color: var(--ink);
+}
+
+.cloze-choice.correct {
+  background: rgba(22, 101, 52, 0.1);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.cloze-choice.incorrect {
+  background: rgba(146, 64, 14, 0.1);
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 .practice-answer-row,
@@ -1769,6 +1853,14 @@ textarea.input {
   margin: -6px 0 0;
 }
 
+.quiz-focus-row {
+  align-items: center;
+}
+
+.quiz-focus-row .quiz-focus-text {
+  margin: 0;
+}
+
 .quiz-choices {
   display: grid;
   gap: 8px;
@@ -1919,7 +2011,14 @@ textarea.input {
   }
 
   .sidebar a {
+    display: inline-flex;
+    width: auto;
     padding: 5px 14px 5px 0;
+  }
+
+  .sidebar a.nav-active {
+    margin-left: 0;
+    padding-left: 0;
   }
 
   .main {
@@ -1927,8 +2026,11 @@ textarea.input {
   }
 
   .grid-2,
-  .grid-3,
-  .practice-grid {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .cloze-choice-grid {
     grid-template-columns: 1fr;
   }
 
