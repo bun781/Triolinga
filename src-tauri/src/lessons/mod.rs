@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tauri::State;
 
+// Chunk: import-planning state
 #[derive(Clone)]
 struct ExistingItem {
     id: String,
@@ -41,6 +42,7 @@ struct TargetLesson {
     next_position: i64,
 }
 
+// Chunk: Tauri commands
 #[tauri::command]
 pub fn get_lessons(state: State<db::AppState>) -> Result<Vec<StudyLessonMeta>, String> {
     let conn = state.conn.lock().map_err(|err| err.to_string())?;
@@ -80,6 +82,7 @@ pub fn import_lesson(source: String, lesson_id: Option<String>, state: State<db:
     import_plan(&mut conn, plan).map_err(|err| err.to_string())
 }
 
+// Chunk: lesson reads and export
 pub fn get_lessons_inner(conn: &Connection) -> Result<Vec<StudyLessonMeta>> {
     let mut stmt = conn.prepare(
         r#"
@@ -334,6 +337,7 @@ fn load_chunks(conn: &Connection, sentence_id: &str) -> Result<Vec<StudyChunk>> 
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
 }
 
+// Chunk: import validation
 fn parse_lesson_json(source: &str) -> Result<(LessonImportInput, Value), Vec<String>> {
     let raw_value: Value = serde_json::from_str(source).map_err(|_| vec!["Invalid JSON.".to_string()])?;
     let mut lesson: LessonImportInput = serde_json::from_value(raw_value.clone())
@@ -385,6 +389,7 @@ fn parse_lesson_json(source: &str) -> Result<(LessonImportInput, Value), Vec<Str
     }
 }
 
+// Chunk: import planning and preview
 fn build_import_plan(conn: &Connection, lesson: LessonImportInput, raw_value: Value, target_lesson_id: Option<&str>) -> Result<ImportPlan> {
     let source_hash = normalize::hash_json_value(&raw_value);
     let target_lesson = if let Some(target_lesson_id) = target_lesson_id {
@@ -538,6 +543,7 @@ fn build_preview(plan: &ImportPlan) -> LessonImportPreviewResult {
     }
 }
 
+// Chunk: database write path
 fn import_plan(conn: &mut Connection, plan: ImportPlan) -> Result<LessonImportSummary> {
     let tx = conn.transaction()?;
     let now = db::now();
@@ -734,6 +740,7 @@ fn insert_link(tx: &Transaction<'_>, table: &str, item_column: &str, sentence_id
     Ok(changed as i64)
 }
 
+// Chunk: candidate aggregation and counts
 fn collect_candidates(lesson: &LessonImportInput) -> Vec<CandidateItem> {
     let mut items: HashMap<String, CandidateItem> = HashMap::new();
     for sentence in &lesson.sentences {
@@ -834,6 +841,7 @@ fn bump_count(
     }
 }
 
+// Chunk: lesson normalization
 fn trim_lesson(lesson: &mut LessonImportInput) {
     lesson.language = normalize::normalize_text(&lesson.language);
     lesson.base_language = normalize::normalize_text(&lesson.base_language);
@@ -897,6 +905,7 @@ fn item_lookup_key(item_type: &str, canonical_key: &str) -> String {
     format!("{item_type}:{canonical_key}")
 }
 
+// Chunk: output shaping
 fn word_output(word: &LessonWordInput) -> LessonWordOutput {
     LessonWordOutput {
         surface: word.surface.clone(),
