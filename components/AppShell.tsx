@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import { GuidedTour, replayGuidedTour } from "@/components/system/GuidedTour";
 
 const navLinks: Array<{ href: Route<string>; label: string }> = [
-  { href: "/study/imported-content", label: "Flashcards" },
+  { href: "/admin/imports", label: "Builder" },
+  { href: "/lessons/manage", label: "Lessons" },
   { href: "/review", label: "Review" },
-  { href: "/lessons/manage", label: "Lesson Manager" },
-  { href: "/study/fill-blank", label: "Fill Blank" },
-  { href: "/study/multiple-choice", label: "Multiple Choice" }
+  { href: "/fydor-exchange", label: "Fydor Exchange" },
+  { href: "/learning-science", label: "Learning Science" }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={href}
               href={href}
-              data-tour={href === "/study/imported-content" ? "nav-library" : undefined}
+              data-tour={href === "/lessons/manage" ? "nav-library" : undefined}
               className={pathname === href || pathname.startsWith(href + "/") ? "nav-active" : ""}
             >
               {label}

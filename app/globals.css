@@ -1386,6 +1386,14 @@ textarea.input {
   border-color: var(--ink);
 }
 
+.tag-chip.static {
+  cursor: default;
+}
+
+.tag-chip.static:hover {
+  border-color: var(--line);
+}
+
 .tag-input {
   background: transparent;
   border: 0;
@@ -1554,6 +1562,207 @@ textarea.input {
   gap: 6px;
   min-height: 260px;
   text-align: center;
+}
+
+/* ── Fydor Exchange ─────────────────────────────────────── */
+
+.exchange-grid {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.exchange-section {
+  align-content: start;
+}
+
+.exchange-my-packs {
+  grid-column: 1 / -1;
+}
+
+.exchange-section-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.exchange-section-heading svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.exchange-actions,
+.exchange-select-all,
+.exchange-filter-row,
+.exchange-stat-row,
+.exchange-validation-list,
+.exchange-duplicate-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exchange-status-card {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.exchange-pack-input {
+  min-height: 170px;
+}
+
+.exchange-preview,
+.exchange-summary,
+.exchange-empty,
+.exchange-pack-row {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.exchange-pack-row {
+  background: var(--surface);
+}
+
+.exchange-pack-row-top {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.exchange-stat-row {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.exchange-stat-row span {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.exchange-lesson-picker,
+.exchange-pack-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.exchange-check-row,
+.exchange-radio {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.exchange-radio {
+  align-items: center;
+  padding: 7px 10px;
+}
+
+.exchange-check-row input,
+.exchange-radio input {
+  margin-top: 4px;
+}
+
+.exchange-radio input {
+  margin-top: 0;
+}
+
+.exchange-check-row span {
+  display: grid;
+  gap: 2px;
+}
+
+.exchange-check-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.exchange-meta-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.exchange-wide-field {
+  grid-column: 1 / -1;
+}
+
+.exchange-warning-list {
+  align-items: flex-start;
+  background: rgba(217, 119, 6, 0.08);
+  padding: 10px 12px;
+}
+
+.exchange-filter-row {
+  align-items: center;
+}
+
+.exchange-search,
+.exchange-select-filter {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.exchange-search {
+  flex: 1 1 240px;
+}
+
+.exchange-search input,
+.exchange-select-filter select {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  min-height: 34px;
+  outline: none;
+  width: 100%;
+}
+
+.exchange-select-filter,
+.exchange-level-select {
+  flex: 0 1 180px;
+}
+
+.exchange-pack-lessons {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.exchange-pack-lessons summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.exchange-pack-lessons ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.learning-science-page {
+  max-width: 900px;
 }
 
 .builder-layout {
@@ -2437,6 +2646,16 @@ textarea.input {
 
   .lesson-library-grid {
     grid-template-columns: 1fr;
+  }
+
+  .exchange-grid,
+  .exchange-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exchange-my-packs,
+  .exchange-wide-field {
+    grid-column: auto;
   }
 
   .lesson-meta-grid {
