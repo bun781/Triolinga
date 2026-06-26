@@ -32,6 +32,14 @@ interface ExistingSentence {
   normalizedText: string;
 }
 
+interface TargetLesson {
+  id: string;
+  language: string;
+  baseLanguage: string;
+  existingSentenceIds: Set<string>;
+  nextPosition: number;
+}
+
 interface CandidateItem {
   canonicalKey: string;
   type: "word" | "grammar" | "chunk";
@@ -43,6 +51,7 @@ interface CandidateItem {
 interface ImportPlan {
   sourceHash: string;
   duplicateImport: boolean;
+  targetLesson: TargetLesson | null;
   validationErrors: string[];
   lessonPreview: LessonImportPreviewResult["lesson"];
   sentencePreviews: LessonImportPreviewResult["sentences"];
@@ -54,8 +63,8 @@ interface ImportPlan {
   existingSentencesByText: Map<string, ExistingSentence>;
 }
 
-export async function buildImportPreview(lesson: LessonImportInput): Promise<LessonImportPreviewResult> {
-  const plan = await buildImportPlan(lesson);
+export async function buildImportPreview(lesson: LessonImportInput, targetLessonId?: string): Promise<LessonImportPreviewResult> {
+  const plan = await buildImportPlan(lesson, targetLessonId);
   return {
     lesson: plan.lessonPreview,
     sentenceCount: plan.sentencePreviews.length,
@@ -68,33 +77,35 @@ export async function buildImportPreview(lesson: LessonImportInput): Promise<Les
   };
 }
 
-export async function importApprovedLesson(lesson: LessonImportInput): Promise<LessonImportSummary> {
+export async function importApprovedLesson(lesson: LessonImportInput, targetLessonId?: string): Promise<LessonImportSummary> {
   await getDb();
-  const sourceHash = hashLessonSource(lesson);
-  const [duplicateLesson] = await db
-    .select({ id: lessons.id })
-    .from(lessons)
-    .where(eq(lessons.sourceHash, sourceHash))
-    .limit(1);
+  if (!targetLessonId) {
+    const sourceHash = hashLessonSource(lesson);
+    const [duplicateLesson] = await db
+      .select({ id: lessons.id })
+      .from(lessons)
+      .where(eq(lessons.sourceHash, sourceHash))
+      .limit(1);
 
-  if (duplicateLesson) {
-    return {
-      lessonCreated: false,
-      lessonUpdated: false,
-      sentencesImported: 0,
-      sentencesSkipped: 0,
-      vocabularyCreated: 0,
-      vocabularyReused: 0,
-      grammarCreated: 0,
-      grammarReused: 0,
-      chunksCreated: 0,
-      chunksReused: 0,
-      linksCreated: 0,
-      errors: []
-    };
+    if (duplicateLesson) {
+      return {
+        lessonCreated: false,
+        lessonUpdated: false,
+        sentencesImported: 0,
+        sentencesSkipped: 0,
+        vocabularyCreated: 0,
+        vocabularyReused: 0,
+        grammarCreated: 0,
+        grammarReused: 0,
+        chunksCreated: 0,
+        chunksReused: 0,
+        linksCreated: 0,
+        errors: []
+      };
+    }
   }
 
-  const plan = await buildImportPlan(lesson);
+  const plan = await buildImportPlan(lesson, targetLessonId);
 
   if (plan.duplicateImport) {
     return {
@@ -131,19 +142,27 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
   }
 
   return db.transaction(async (tx) => {
-    const [lessonRow] = await tx.insert(lessons).values({
-      targetLanguage: lesson.language,
-      baseLanguage: lesson.baseLanguage,
-      description: lesson.description,
-      source: lesson.source,
-      level: lesson.level,
-      title: lesson.title,
-      sourceHash,
-      tags: lesson.tags ?? []
-    }).returning({ id: lessons.id });
+    let lessonId = plan.targetLesson?.id;
+    let lessonCreated = false;
+
+    if (!lessonId) {
+      const [lessonRow] = await tx.insert(lessons).values({
+        targetLanguage: lesson.language,
+        baseLanguage: lesson.baseLanguage,
+        description: lesson.description,
+        source: lesson.source,
+        level: lesson.level,
+        title: lesson.title,
+        sourceHash: plan.sourceHash,
+        tags: lesson.tags ?? []
+      }).returning({ id: lessons.id });
+      lessonId = lessonRow.id;
+      lessonCreated = Boolean(lessonRow?.id);
+    }
 
     let sentencesImported = 0;
     let sentencesSkipped = 0;
+    let nextPosition = plan.targetLesson?.nextPosition ?? 0;
 
     const itemIdByKey = new Map<string, string>();
     let linksCreated = 0;
@@ -205,7 +224,7 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
         sentencesSkipped += 1;
       } else {
         const [insertedSentence] = await tx.insert(sentences).values({
-          lessonId: lessonRow.id,
+          lessonId,
           language: lesson.language,
           text: sentence.text,
           normalizedText,
@@ -218,13 +237,23 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
         sentencesImported += 1;
       }
 
-      const [lessonSentenceRow] = await tx.insert(lessonSentences).values({
-        lessonId: lessonRow.id,
-        sentenceId,
-        position: index
-      }).returning({ id: lessonSentences.id });
-      if (lessonSentenceRow) {
-        linksCreated += 1;
+      const shouldLinkSentence = plan.targetLesson
+        ? !plan.targetLesson.existingSentenceIds.has(sentenceId)
+        : true;
+
+      if (shouldLinkSentence) {
+        const position = plan.targetLesson ? nextPosition : index;
+        const [lessonSentenceRow] = await tx.insert(lessonSentences).values({
+          lessonId,
+          sentenceId,
+          position
+        }).returning({ id: lessonSentences.id });
+        if (lessonSentenceRow) {
+          linksCreated += 1;
+        }
+        if (plan.targetLesson) {
+          nextPosition += 1;
+        }
       }
 
       const sentenceLinksCreated = await createSentenceItemLinks({
@@ -238,8 +267,8 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
     }
 
     return {
-      lessonCreated: Boolean(lessonRow?.id),
-      lessonUpdated: false,
+      lessonCreated,
+      lessonUpdated: Boolean(plan.targetLesson),
       sentencesImported,
       sentencesSkipped,
       vocabularyCreated,
@@ -254,14 +283,17 @@ export async function importApprovedLesson(lesson: LessonImportInput): Promise<L
   });
 }
 
-async function buildImportPlan(lesson: LessonImportInput): Promise<ImportPlan> {
+async function buildImportPlan(lesson: LessonImportInput, targetLessonId?: string): Promise<ImportPlan> {
   await getDb();
   const sourceHash = hashLessonSource(lesson);
-  const [duplicateImport] = await db
-    .select({ id: lessons.id })
-    .from(lessons)
-    .where(eq(lessons.sourceHash, sourceHash))
-    .limit(1);
+  const targetLesson = targetLessonId ? await loadTargetLesson(targetLessonId, lesson) : null;
+  const [duplicateImport] = targetLesson
+    ? []
+    : await db
+      .select({ id: lessons.id })
+      .from(lessons)
+      .where(eq(lessons.sourceHash, sourceHash))
+      .limit(1);
 
   const normalizedTexts = lesson.sentences.map((sentence) => normalizeSentenceText(sentence.text));
   const existingSentences = normalizedTexts.length
@@ -296,6 +328,7 @@ async function buildImportPlan(lesson: LessonImportInput): Promise<ImportPlan> {
   return {
     sourceHash,
     duplicateImport: Boolean(duplicateImport),
+    targetLesson,
     validationErrors: [],
     lessonPreview: {
       language: lesson.language,
@@ -321,6 +354,43 @@ async function buildImportPlan(lesson: LessonImportInput): Promise<ImportPlan> {
     candidateItems,
     existingItemsByKey,
     existingSentencesByText
+  };
+}
+
+async function loadTargetLesson(targetLessonId: string, lesson: LessonImportInput): Promise<TargetLesson> {
+  const [target] = await db
+    .select({
+      id: lessons.id,
+      language: lessons.targetLanguage,
+      baseLanguage: lessons.baseLanguage
+    })
+    .from(lessons)
+    .where(eq(lessons.id, targetLessonId))
+    .limit(1);
+
+  if (!target) {
+    throw new Error("Selected lesson was not found.");
+  }
+
+  if (target.language !== lesson.language || target.baseLanguage !== lesson.baseLanguage) {
+    throw new Error(`The selected lesson uses ${target.language} -> ${target.baseLanguage}, but the import source uses ${lesson.language} -> ${lesson.baseLanguage}.`);
+  }
+
+  const existingLinks = await db
+    .select({
+      sentenceId: lessonSentences.sentenceId,
+      position: lessonSentences.position
+    })
+    .from(lessonSentences)
+    .where(eq(lessonSentences.lessonId, targetLessonId));
+  const maxPosition = existingLinks.reduce((max, row) => Math.max(max, row.position), -1);
+
+  return {
+    id: target.id,
+    language: target.language,
+    baseLanguage: target.baseLanguage,
+    existingSentenceIds: new Set(existingLinks.map((row) => row.sentenceId)),
+    nextPosition: maxPosition + 1
   };
 }
 

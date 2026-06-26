@@ -1,5 +1,14 @@
 # Lesson Builder System Log
 
+## 0.1.1 - Builder Metadata Header Refresh
+
+- Reduced visual clutter in the Lesson Builder header by moving sentence count beside the editable title.
+- Replaced the large metadata grid with compact editable language, base language, level, source, description, target, and tag controls.
+- Converted lesson tags into removable chips with add-on-enter/comma behavior while preserving the existing tags array mapping.
+- Hid Guide and Prompt Templates behind a small help button without removing either feature.
+- Kept Check and Preview as lower-emphasis actions and Save/Update/Append as the primary action.
+- Preserved the append-to-existing-lesson workflow for selected lesson targets.
+
 ## Review System Addendum
 
 The sentence review tab lives at `/review` and uses a separate queue strategy from the lesson library so it can be swapped for SRS later without changing the UI.

@@ -8,9 +8,11 @@ interface LanguageFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  className?: string;
+  inputClassName?: string;
 }
 
-export function LanguageField({ label, value, onChange }: LanguageFieldProps) {
+export function LanguageField({ label, value, onChange, className = "", inputClassName = "input" }: LanguageFieldProps) {
   const [draft, setDraft] = useState("");
   const [focused, setFocused] = useState(false);
 
@@ -34,11 +36,11 @@ export function LanguageField({ label, value, onChange }: LanguageFieldProps) {
   }, [draft]);
 
   return (
-    <label className="field searchable-field">
+    <label className={`field searchable-field${className ? ` ${className}` : ""}`}>
       <span>{label}</span>
       <div className="searchable-input-shell">
         <input
-          className="input"
+          className={inputClassName}
           value={draft}
           onBlur={() => {
             window.setTimeout(() => setFocused(false), 100);

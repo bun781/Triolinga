@@ -221,6 +221,48 @@ describe("lesson import validation", () => {
     expect(mockDb.store.sentenceVocabularyLinks).toHaveLength(1);
   });
 
+  it("appends imported json sentences to an existing lesson", async () => {
+    const firstLesson = buildLesson([
+      { text: "안녕하세요.", translation: "Hello." }
+    ]);
+    await importApprovedLesson(parseLessonJson(JSON.stringify(firstLesson)).lesson!);
+
+    const targetLessonId = mockDb.store.lessons[0].id as string;
+    const appendLesson = buildLesson([
+      { text: "안녕하세요.", translation: "Hello again." },
+      { text: "저는 학생입니다.", translation: "I am a student." }
+    ]);
+
+    const parsed = parseLessonJson(JSON.stringify(appendLesson));
+    expect(parsed.errors).toEqual([]);
+
+    const preview = await buildImportPreview(parsed.lesson!, targetLessonId);
+    expect(preview.duplicateImport).toBe(false);
+    expect(preview.sentences.map((sentence) => sentence.duplicateSentence)).toEqual([true, false]);
+
+    const summary = await importApprovedLesson(parsed.lesson!, targetLessonId);
+    expect(summary).toEqual({
+      lessonCreated: false,
+      lessonUpdated: true,
+      sentencesImported: 1,
+      sentencesSkipped: 1,
+      vocabularyCreated: 0,
+      vocabularyReused: 0,
+      grammarCreated: 0,
+      grammarReused: 0,
+      chunksCreated: 0,
+      chunksReused: 0,
+      linksCreated: 1,
+      errors: []
+    });
+    expect(mockDb.store.lessons).toHaveLength(1);
+    expect(mockDb.store.sentences).toHaveLength(2);
+    expect(mockDb.store.lessonSentences).toEqual([
+      expect.objectContaining({ lessonId: targetLessonId, sentenceId: "sentence-2", position: 0 }),
+      expect.objectContaining({ lessonId: targetLessonId, sentenceId: "sentence-4", position: 1 })
+    ]);
+  });
+
   it("rolls back the transaction on failure", async () => {
     const failingStore = createStore();
     mockDb.resetStore(failingStore, { failOnInsertTable: sentenceChunkLinks });
@@ -391,11 +433,22 @@ class SelectQuery {
   private execute() {
     const store = this.getStore();
     if (this.table === lessons) {
-      return store.lessons.map((row) => ({ id: row.id })).slice(0, this.limitCount ?? Infinity);
+      return store.lessons.map((row) => ({
+        id: row.id,
+        language: row.targetLanguage,
+        baseLanguage: row.baseLanguage
+      })).slice(0, this.limitCount ?? Infinity);
     }
 
     if (this.table === sentences) {
       return store.sentences.map((row) => ({ id: row.id, normalizedText: row.normalizedText }));
+    }
+
+    if (this.table === lessonSentences) {
+      return store.lessonSentences.map((row) => ({
+        sentenceId: row.sentenceId,
+        position: row.position
+      }));
     }
 
     if (this.table === learningItems) {

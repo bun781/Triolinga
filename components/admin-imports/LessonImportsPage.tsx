@@ -12,7 +12,7 @@ import {
   Trash2,
   Upload
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LessonLibraryPanel } from "@/components/admin-imports/LessonLibraryPanel";
 import { LanguageField } from "@/components/admin-imports/LanguageField";
@@ -66,6 +66,7 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
   const [selection, setSelection] = useState<SelectedSpan | null>(null);
   const [draft, setDraft] = useState<AnnotationDraft>(createDraft());
   const [source, setSource] = useState(() => stringifyLesson(initialLesson));
+  const [appendSource, setAppendSource] = useState("");
   const [preview, setPreview] = useState<LessonImportPreviewResult | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState("");
@@ -90,6 +91,20 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
     [activeSentence]
   );
   const currentTargetLessonId = editorLessonId ?? (targetLessonId !== "new" ? targetLessonId : undefined);
+  const canAppendSentenceJson = Boolean(currentTargetLessonId);
+  const usingAppendSentenceJson = canAppendSentenceJson && appendSource.trim().length > 0;
+  const saveActionLabel = usingAppendSentenceJson ? "Append" : editingExistingLesson ? "Update" : "Save";
+  const targetLesson = lessonOptions.find((item) => item.id === targetLessonId);
+  const appendJsonPlaceholder = `{
+  "text": "你好。",
+  "translation": "Hello.",
+  "words": [
+    {
+      "surface": "你好",
+      "meaning": "hello"
+    }
+  ]
+}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +156,7 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
     setErrors([]);
     setStatus("");
     setSummary(null);
+    setAppendSource("");
 
     try {
       setLesson(JSON.parse(text) as LessonImportInput);
@@ -152,6 +168,23 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
 
   function updateLessonField<K extends keyof LessonImportInput>(field: K, value: LessonImportInput[K]) {
     syncLesson({ ...lesson, [field]: value });
+  }
+
+  function addTagFromValue(value: string) {
+    const nextTags = splitTags(value);
+    if (!nextTags.length) return;
+    updateLessonField("tags", Array.from(new Set([...(lesson.tags ?? []), ...nextTags])));
+  }
+
+  function removeLessonTag(tagToRemove: string) {
+    updateLessonField("tags", (lesson.tags ?? []).filter((tag) => tag !== tagToRemove));
+  }
+
+  function handleTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" && event.key !== ",") return;
+    event.preventDefault();
+    addTagFromValue(event.currentTarget.value);
+    event.currentTarget.value = "";
   }
 
   function updateSentence(field: keyof LessonSentenceInput, value: string) {
@@ -290,10 +323,15 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
       setErrors([]);
       setStatus("");
       try {
-        const result = editorLessonId ? await updateLessonApi(editorLessonId, jsonSource) : await importLessonApi(jsonSource, lessonId);
+        const shouldAppendSentenceJson = Boolean(lessonId && appendSource.trim());
+        const result = shouldAppendSentenceJson
+          ? await importLessonApi(jsonSource, lessonId)
+          : editorLessonId
+            ? await updateLessonApi(editorLessonId, jsonSource)
+            : await importLessonApi(jsonSource, lessonId);
         setPreview(null);
         setSummary(result);
-        setStatus(editorLessonId ? "Lesson updated." : lessonId ? "Sentences appended." : "Lesson saved.");
+        setStatus(shouldAppendSentenceJson ? "Sentences appended." : editorLessonId ? "Lesson updated." : lessonId ? "Sentences appended." : "Lesson saved.");
         await refreshLessons();
       } catch (error) {
         setErrors([error instanceof Error ? error.message : "Unable to import lesson."]);
@@ -305,6 +343,15 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
 
   async function withJsonSource(callback: (jsonSource: string, lessonId?: string) => Promise<void>) {
     const lessonId = currentTargetLessonId;
+
+    if (lessonId && appendSource.trim()) {
+      try {
+        await callback(buildAppendJsonSource(appendSource, lessonId), lessonId);
+      } catch (error) {
+        setErrors([error instanceof Error ? error.message : "Invalid append sentence JSON."]);
+      }
+      return;
+    }
 
     if (mode === "builder") {
       await callback(stringifyLesson(lesson), lessonId);
@@ -318,6 +365,66 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
     } catch {
       setErrors(["Invalid JSON."]);
     }
+  }
+
+  function buildAppendJsonSource(jsonSource: string, lessonId: string): string {
+    const target = lessonOptions.find((item) => item.id === lessonId);
+    const targetLanguage = target?.language ?? (editorLessonId === lessonId ? lesson.language : undefined);
+    const targetBaseLanguage = target?.baseLanguage ?? (editorLessonId === lessonId ? lesson.baseLanguage : undefined);
+    const targetTitle = target?.title ?? (editorLessonId === lessonId ? lesson.title : undefined);
+
+    if (!targetLanguage || !targetBaseLanguage || !targetTitle) {
+      throw new Error("Choose an existing lesson before appending sentence JSON.");
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonSource);
+    } catch {
+      throw new Error("Invalid append sentence JSON.");
+    }
+
+    const sentences = extractAppendSentences(parsed);
+    if (!sentences.length) {
+      throw new Error("Append JSON must be a sentence object, an array of sentence objects, or an object with a sentences array.");
+    }
+
+    const appendLesson: LessonImportInput = {
+      language: targetLanguage,
+      baseLanguage: targetBaseLanguage,
+      title: targetTitle,
+      description: target?.description ?? lesson.description ?? undefined,
+      level: target?.level ?? lesson.level ?? undefined,
+      tags: target?.tags ?? lesson.tags,
+      source: "json_append",
+      sentences
+    };
+
+    return JSON.stringify(appendLesson);
+  }
+
+  function extractAppendSentences(value: unknown): LessonSentenceInput[] {
+    if (Array.isArray(value)) {
+      return value as LessonSentenceInput[];
+    }
+
+    if (isRecord(value) && Array.isArray(value.sentences)) {
+      return value.sentences as LessonSentenceInput[];
+    }
+
+    if (isRecord(value) && isRecord(value.sentence)) {
+      return [value.sentence as unknown as LessonSentenceInput];
+    }
+
+    if (isRecord(value) && typeof value.text === "string") {
+      return [value as unknown as LessonSentenceInput];
+    }
+
+    return [];
+  }
+
+  function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   async function readFile(file: File | undefined) {
@@ -429,9 +536,6 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
                 Lessons
               </button>
             </div>
-            <span className="sentence-count-badge">
-              {lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}
-            </span>
           </div>
         </div>
 
@@ -442,7 +546,6 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
         ) : (
           <>
             <div className="lesson-builder-topbar-right">
-              <ImportHelpPanel />
               <div className="lesson-builder-actions">
                 <button className="button secondary compact-button" type="button" data-tour="lesson-check" disabled={loading} onClick={() => requestPreview("validate")}>
                   <Check size={16} />
@@ -454,69 +557,156 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
                 </button>
                 <button className="button compact-button" type="button" data-tour="lesson-save" disabled={importing} onClick={saveLesson}>
                   <Save size={16} />
-                  {importing ? "Saving…" : editingExistingLesson ? "Update" : "Save"}
+                  {importing ? "Saving…" : saveActionLabel}
                 </button>
               </div>
+              <ImportHelpPanel />
             </div>
 
-            <div className="lesson-meta-grid">
-              <label className="field lesson-meta-title">
-                <span>Title</span>
-                <input className="input" value={lesson.title} onChange={(event) => updateLessonField("title", event.target.value)} />
-              </label>
-              <LanguageField label="Language" value={lesson.language} onChange={(value) => updateLessonField("language", value)} />
-              <LanguageField label="Base" value={lesson.baseLanguage} onChange={(value) => updateLessonField("baseLanguage", value)} />
-              <label className="field">
-                <span>Level</span>
-                <input className="input" value={lesson.level ?? ""} onChange={(event) => updateLessonField("level", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Source</span>
-                <input className="input" value={lesson.source ?? ""} onChange={(event) => updateLessonField("source", event.target.value)} />
-              </label>
-              <label className="field lesson-meta-tags">
-                <span>Tags</span>
-                <input className="input" value={(lesson.tags ?? []).join(", ")} onChange={(event) => updateLessonField("tags", splitTags(event.target.value))} />
-              </label>
-              <label className="field lesson-meta-description">
-                <span>Description</span>
-                <input className="input" value={lesson.description ?? ""} onChange={(event) => updateLessonField("description", event.target.value)} />
-              </label>
-              <label className="field lesson-meta-description">
-                <span>Import target</span>
-                {editingExistingLesson ? (
-                  <div className="lesson-edit-note">
-                    Saving updates the loaded lesson in place.
-                  </div>
-                ) : (
-                  <>
+            <div className="lesson-meta-compact">
+              <div className="lesson-title-block">
+                <input
+                  className="lesson-title-input"
+                  value={lesson.title}
+                  placeholder="Lesson title"
+                  aria-label="Lesson title"
+                  onChange={(event) => updateLessonField("title", event.target.value)}
+                />
+                <span className="lesson-sentence-count">
+                  {lesson.sentences.length} sentence{lesson.sentences.length === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <div className="lesson-meta-inline" aria-label="Lesson metadata">
+                <LanguageField
+                  label="Language"
+                  value={lesson.language}
+                  className="compact-language-field"
+                  inputClassName="input compact-meta-input"
+                  onChange={(value) => updateLessonField("language", value)}
+                />
+                <span className="meta-separator" aria-hidden="true">-&gt;</span>
+                <LanguageField
+                  label="Base"
+                  value={lesson.baseLanguage}
+                  className="compact-language-field"
+                  inputClassName="input compact-meta-input"
+                  onChange={(value) => updateLessonField("baseLanguage", value)}
+                />
+                <span className="meta-separator" aria-hidden="true">.</span>
+                <label className="field compact-field">
+                  <span>Level</span>
+                  <input
+                    className="input compact-meta-input"
+                    value={lesson.level ?? ""}
+                    placeholder="Level"
+                    onChange={(event) => updateLessonField("level", event.target.value)}
+                  />
+                </label>
+                <span className="meta-separator" aria-hidden="true">.</span>
+                <label className="field compact-field">
+                  <span>Source</span>
+                  <input
+                    className="input compact-meta-input"
+                    value={lesson.source ?? ""}
+                    placeholder="Source"
+                    onChange={(event) => updateLessonField("source", event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <input
+                className="input compact-description-input"
+                value={lesson.description ?? ""}
+                placeholder="Description"
+                aria-label="Description"
+                onChange={(event) => updateLessonField("description", event.target.value)}
+              />
+
+              <div className="lesson-meta-footer">
+                <div className="tag-editor" aria-label="Lesson tags">
+                  {(lesson.tags ?? []).map((tag) => (
+                    <button className="tag-chip" key={tag} type="button" title={`Remove ${tag}`} onClick={() => removeLessonTag(tag)}>
+                      {tag}
+                      <span aria-hidden="true">x</span>
+                    </button>
+                  ))}
+                  <input
+                    className="tag-input"
+                    placeholder={(lesson.tags ?? []).length ? "Add tag" : "Add tags"}
+                    aria-label="Add lesson tag"
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={(event) => {
+                      addTagFromValue(event.currentTarget.value);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </div>
+
+                <div className="lesson-target-compact">
+                  <span>Target:</span>
+                  {editingExistingLesson ? (
+                    <strong>Current lesson</strong>
+                  ) : (
                     <select
-                      className="input"
+                      className="compact-target-select"
                       disabled={lessonsLoading}
                       value={targetLessonId}
+                      aria-label="Import target"
                       onChange={(event) => {
                         setTargetLessonId(event.target.value);
+                        if (event.target.value === "new") setAppendSource("");
                         setPreview(null);
                         setSummary(null);
                         setStatus("");
                       }}
                     >
-                      <option value="new">Create new lesson</option>
+                      <option value="new">New lesson</option>
                       {lessonOptions.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.title} ({item.language})
                         </option>
                       ))}
                     </select>
-                    <span className="muted">
-                      {lessonOptions.find((item) => item.id === targetLessonId)
-                        ? "Imported sentences will be appended to the selected lesson."
-                        : "Choose an existing lesson to append sentences instead of creating a new lesson."}
-                    </span>
-                  </>
-                )}
-              </label>
+                  )}
+                  <small>{editingExistingLesson ? "Updates in place" : targetLesson ? "Appends sentences" : "Creates a lesson"}</small>
+                </div>
+              </div>
             </div>
+
+            {canAppendSentenceJson ? (
+              <section className="append-json-panel stack">
+                <div className="row">
+                  <div>
+                    <h2>Append Sentence JSON</h2>
+                    <p className="muted">Paste here to append to the selected lesson instead of updating the full lesson.</p>
+                  </div>
+                  <button
+                    className="button secondary compact-button"
+                    type="button"
+                    onClick={() => {
+                      setAppendSource("");
+                      setPreview(null);
+                      setSummary(null);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+                <textarea
+                  className="input code-input append-json-input"
+                  value={appendSource}
+                  placeholder={appendJsonPlaceholder}
+                  onChange={(event) => {
+                    setAppendSource(event.target.value);
+                    setPreview(null);
+                    setSummary(null);
+                    setStatus("");
+                  }}
+                  aria-label="Append sentence JSON"
+                />
+              </section>
+            ) : null}
           </>
         )}
       </section>
@@ -536,38 +726,6 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
         <div className="lesson-builder">
           <section className="builder-layout">
             <div className="stack">
-              <section className="card stack">
-                <div className="row">
-                  <h2>Sentences</h2>
-                  <button
-                    className="button secondary"
-                    type="button"
-                    title="Add a new sentence after the active one"
-                    onClick={() => addSentence()}
-                  >
-                    <Plus size={18} />
-                    Add sentence
-                  </button>
-                </div>
-                <div className="sentence-tabs">
-                  {lesson.sentences.map((sentence, index) => (
-                    <button
-                      className={index === activeSentenceIndex ? "active" : ""}
-                      key={`${index}-${sentence.text}`}
-                      type="button"
-                      onClick={() => {
-                        setActiveSentenceIndex(index);
-                        setSelection(null);
-                        setDraft(createDraft());
-                      }}
-                    >
-                      <span>{index + 1}</span>
-                      {sentence.text || "Untitled sentence"}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
               <section className="card stack">
                 <div className="row">
                   <div>
@@ -622,6 +780,38 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
                   <span>Translation</span>
                   <input className="input" value={activeSentence.translation ?? ""} onChange={(event) => updateSentence("translation", event.target.value)} />
                 </label>
+              </section>
+
+              <section className="card stack">
+                <div className="row">
+                  <h2>Sentences</h2>
+                  <button
+                    className="button secondary"
+                    type="button"
+                    title="Add a new sentence after the active one"
+                    onClick={() => addSentence()}
+                  >
+                    <Plus size={18} />
+                    Add sentence
+                  </button>
+                </div>
+                <div className="sentence-tabs">
+                  {lesson.sentences.map((sentence, index) => (
+                    <button
+                      className={index === activeSentenceIndex ? "active" : ""}
+                      key={`${index}-${sentence.text}`}
+                      type="button"
+                      onClick={() => {
+                        setActiveSentenceIndex(index);
+                        setSelection(null);
+                        setDraft(createDraft());
+                      }}
+                    >
+                      <span>{index + 1}</span>
+                      {sentence.text || "Untitled sentence"}
+                    </button>
+                  ))}
+                </div>
               </section>
             </div>
 
@@ -750,7 +940,7 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
           <ImportPreview
             preview={preview}
             importing={importing}
-            approveLabel={editingExistingLesson ? "Update lesson" : appendingToExistingLesson ? "Append sentences" : "Save lesson"}
+            approveLabel={usingAppendSentenceJson || appendingToExistingLesson ? "Append sentences" : editingExistingLesson ? "Update lesson" : "Save lesson"}
             onApprove={saveLesson}
             onCancel={() => setPreview(null)}
           />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, HelpCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { importGuideSections, importPromptTemplates } from "@/lib/language/importResources";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -31,36 +31,24 @@ export function ImportHelpPanel() {
     }
   }
 
-  function toggleTab(nextTab: HelpTab) {
-    if (isOpen && tab === nextTab) {
-      setIsOpen(false);
-      return;
-    }
-
-    setTab(nextTab);
-    setIsOpen(true);
+  function toggleHelp() {
+    setIsOpen((current) => !current);
   }
 
   return (
     <div className="import-help-toggle">
-      <div className="mode-tabs import-help-toggle-tabs" role="tablist" aria-label="Lesson import help tabs">
+      <Tooltip content="Show guide and prompt templates.">
         <button
-          className={isOpen && tab === "guide" ? "active" : ""}
+          className={`icon-button import-help-button${isOpen ? " active" : ""}`}
           type="button"
+          aria-label="Help"
+          aria-expanded={isOpen}
           data-tour="import-guide"
-          onClick={() => toggleTab("guide")}
+          onClick={toggleHelp}
         >
-          Guide
+          <HelpCircle size={17} />
         </button>
-        <button
-          className={isOpen && tab === "prompts" ? "active" : ""}
-          type="button"
-          data-tour="import-prompts"
-          onClick={() => toggleTab("prompts")}
-        >
-          Prompts
-        </button>
-      </div>
+      </Tooltip>
 
       {isOpen ? (
         <section className="card stack import-help-panel">
@@ -75,7 +63,7 @@ export function ImportHelpPanel() {
             <button className={tab === "guide" ? "active" : ""} type="button" onClick={() => setTab("guide")}>
               Guide
             </button>
-            <button className={tab === "prompts" ? "active" : ""} type="button" onClick={() => setTab("prompts")}>
+            <button className={tab === "prompts" ? "active" : ""} type="button" data-tour="import-prompts" onClick={() => setTab("prompts")}>
               Prompt templates
             </button>
           </div>
