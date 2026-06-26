@@ -3,7 +3,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { StudyLesson, StudyLessonMeta } from "@/lib/imported-content/types";
 import type { LessonImportInput, LessonImportPreviewResult, LessonImportSummary } from "@/lib/language/types";
-import type { ReviewDecision, ReviewSentence } from "@/lib/review/types";
+import type { ReviewDecision, ReviewResetScope, ReviewSentence } from "@/lib/review/types";
 
 export async function getLessons(): Promise<StudyLessonMeta[]> {
   return invoke("get_lessons");
@@ -39,6 +39,10 @@ export async function getReviewQueue(): Promise<ReviewSentence[]> {
 
 export async function updateReviewItem(sentenceId: string, decision: ReviewDecision): Promise<ReviewSentence> {
   return invoke("update_review_item", { sentenceId, decision });
+}
+
+export async function resetReviewProgress(scope: ReviewResetScope): Promise<void> {
+  return invoke("reset_review_progress", { scope });
 }
 
 export async function saveUserSettings(settings: Record<string, unknown>): Promise<void> {

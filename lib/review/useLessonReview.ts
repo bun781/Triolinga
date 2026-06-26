@@ -137,12 +137,18 @@ export function useLessonReview(sentences: StudySentence[], options: UseLessonRe
       if (event.key === "ArrowRight") {
         event.preventDefault();
         markRemembered();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishReview();
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [markNotRemembered, markRemembered, state.active]);
+  }, [finishReview, markNotRemembered, markRemembered, state.active]);
 
   return {
     active: state.active,

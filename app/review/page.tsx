@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { ReviewDeck } from "@/components/review/ReviewDeck";
 import { PageState } from "@/components/system/PageState";
-import { getLessons, getReviewQueue } from "@/lib/desktopApi";
+import { getLesson, getLessons, getReviewQueue, resetReviewProgress } from "@/lib/desktopApi";
 import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
-import type { StudyLessonMeta } from "@/lib/imported-content/types";
-import type { ReviewSentence } from "@/lib/review/types";
+import type { StudyLesson, StudyLessonMeta } from "@/lib/imported-content/types";
+import type { ReviewResetScope, ReviewSentence } from "@/lib/review/types";
 
 const REVIEW_SELECTION_KEY = "review.selected-lessons";
 
@@ -18,6 +18,7 @@ interface ReviewSelectionProgress {
 export default function ReviewPage() {
   const [sentences, setSentences] = useState<ReviewSentence[]>([]);
   const [lessons, setLessons] = useState<StudyLessonMeta[]>([]);
+  const [fullLessons, setFullLessons] = useState<StudyLesson[]>([]);
   const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,9 @@ export default function ReviewPage() {
     let cancelled = false;
 
     Promise.all([getReviewQueue(), getLessons()])
-      .then(([queue, lessonList]) => {
+      .then(async ([queue, lessonList]) => {
+        if (cancelled) return;
+        const loadedLessons = await Promise.all(lessonList.map((item) => getLesson(item.id)));
         if (cancelled) return;
         const availableLessonIds = getAvailableLessonIds(queue, lessonList);
         const savedSelection = readSessionProgress(REVIEW_SELECTION_KEY, validateReviewSelectionProgress);
@@ -41,6 +44,7 @@ export default function ReviewPage() {
 
         setSentences(queue);
         setLessons(lessonList);
+        setFullLessons(loadedLessons.filter((item): item is StudyLesson => Boolean(item)));
         setSelectedLessonIds(restoredLessonIds.length ? restoredLessonIds : availableLessonIds);
       })
       .catch((err) => {
@@ -54,6 +58,12 @@ export default function ReviewPage() {
       cancelled = true;
     };
   }, []);
+
+  async function handleResetProgress(scope: ReviewResetScope) {
+    await resetReviewProgress(scope);
+    const queue = await getReviewQueue();
+    setSentences(queue);
+  }
 
   return (
     <AppShell>
@@ -71,9 +81,11 @@ export default function ReviewPage() {
         <ReviewDeck
           allSentenceCount={sentences.length}
           lessons={lessons}
+          fullLessons={filterLessonsByLesson(fullLessons, selectedLessonIds)}
           sentenceCountByLesson={sentenceCountByLesson}
           selectedLessonIds={selectedLessonIds}
           sentences={filteredSentences}
+          onResetProgress={handleResetProgress}
           onSelectedLessonIdsChange={(lessonIds) => {
             setSelectedLessonIds(lessonIds);
             writeSessionProgress(REVIEW_SELECTION_KEY, { lessonIds });
@@ -89,6 +101,12 @@ export default function ReviewPage() {
       )}
     </AppShell>
   );
+}
+
+function filterLessonsByLesson(lessons: StudyLesson[], selectedLessonIds: string[]) {
+  if (!selectedLessonIds.length) return [];
+  const selected = new Set(selectedLessonIds);
+  return lessons.filter((lesson) => selected.has(lesson.id));
 }
 
 function validateReviewSelectionProgress(value: unknown): ReviewSelectionProgress | null {

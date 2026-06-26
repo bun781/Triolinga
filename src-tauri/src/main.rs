@@ -40,6 +40,7 @@ fn main() {
             lessons::import_lesson,
             review::get_review_queue,
             review::update_review_item,
+            review::reset_review_progress,
             settings::save_user_settings
         ])
         .run(tauri::generate_context!())

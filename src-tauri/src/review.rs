@@ -2,7 +2,20 @@ use crate::{db, models::ReviewSentence};
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
+use serde::Deserialize;
 use tauri::State;
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ReviewResetScope {
+    Lesson { lesson_id: String },
+    Sentence { sentence_id: String },
+    Item {
+        item_type: String,
+        canonical_key: String,
+        lesson_id: Option<String>,
+    },
+}
 
 #[tauri::command]
 pub fn get_review_queue(state: State<db::AppState>) -> Result<Vec<ReviewSentence>, String> {
@@ -88,6 +101,30 @@ pub fn update_review_item(
         .ok_or_else(|| "Sentence not found.".to_string())
 }
 
+#[tauri::command]
+pub fn reset_review_progress(
+    scope: ReviewResetScope,
+    state: State<db::AppState>,
+) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|err| err.to_string())?;
+    ensure_review_items(&conn).map_err(|err| err.to_string())?;
+
+    match scope {
+        ReviewResetScope::Lesson { lesson_id } => reset_lesson_progress(&conn, &lesson_id),
+        ReviewResetScope::Sentence { sentence_id } => reset_sentences_progress(&conn, &[sentence_id]),
+        ReviewResetScope::Item {
+            item_type,
+            canonical_key,
+            lesson_id,
+        } => {
+            let sentence_ids = get_item_sentence_ids(&conn, &item_type, &canonical_key, lesson_id.as_deref())
+                .map_err(|err| err.to_string())?;
+            reset_sentences_progress(&conn, &sentence_ids)
+        }
+    }
+    .map_err(|err| err.to_string())
+}
+
 fn get_review_queue_inner(conn: &Connection) -> Result<Vec<ReviewSentence>> {
     ensure_review_items(conn)?;
     let mut stmt = conn.prepare(
@@ -157,6 +194,71 @@ fn get_sentence(conn: &Connection, sentence_id: &str) -> Result<Option<ReviewSen
     )
     .optional()
     .map_err(Into::into)
+}
+
+fn reset_lesson_progress(conn: &Connection, lesson_id: &str) -> Result<()> {
+    let mut stmt = conn.prepare("SELECT id FROM sentences WHERE lesson_id = ?1")?;
+    let rows = stmt.query_map([lesson_id], |row| row.get::<_, String>(0))?;
+    let sentence_ids = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    reset_sentences_progress(conn, &sentence_ids)
+}
+
+fn reset_sentences_progress(conn: &Connection, sentence_ids: &[String]) -> Result<()> {
+    let now = db::now();
+    for sentence_id in sentence_ids {
+        conn.execute(
+            "UPDATE sentences SET review_state = 'unknown', review_streak = 0, reviewed_at = NULL, updated_at = ?1 WHERE id = ?2",
+            params![now, sentence_id],
+        )?;
+        conn.execute(
+            r#"
+            UPDATE review_items
+            SET due_at = ?1,
+                last_reviewed_at = NULL,
+                repetitions = 0,
+                lapses = 0,
+                difficulty = 0.3,
+                stability = 0,
+                recall_mode = 'full_support',
+                updated_at = ?1
+            WHERE sentence_id = ?2
+            "#,
+            params![now, sentence_id],
+        )?;
+    }
+    Ok(())
+}
+
+fn get_item_sentence_ids(
+    conn: &Connection,
+    item_type: &str,
+    canonical_key: &str,
+    lesson_id: Option<&str>,
+) -> Result<Vec<String>> {
+    let (table, item_column) = match item_type {
+        "word" => ("sentence_vocabulary_links", "vocabulary_item_id"),
+        "grammar" => ("sentence_grammar_links", "grammar_item_id"),
+        "chunk" => ("sentence_chunk_links", "chunk_item_id"),
+        _ => return Ok(Vec::new()),
+    };
+    let lesson_filter = if lesson_id.is_some() { "AND s.lesson_id = ?3" } else { "" };
+    let sql = format!(
+        r#"
+        SELECT DISTINCT s.id
+        FROM sentences s
+        JOIN {table} link ON link.sentence_id = s.id
+        JOIN learning_items li ON li.id = link.{item_column}
+        WHERE li.type = ?1 AND li.canonical_key = ?2 {lesson_filter}
+        "#
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    if let Some(lesson_id) = lesson_id {
+        let rows = stmt.query_map(params![item_type, canonical_key, lesson_id], |row| row.get::<_, String>(0))?;
+        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    } else {
+        let rows = stmt.query_map(params![item_type, canonical_key], |row| row.get::<_, String>(0))?;
+        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+    }
 }
 
 fn ensure_review_items(conn: &Connection) -> Result<()> {

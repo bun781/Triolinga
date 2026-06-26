@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { updateReviewItem } from "@/lib/desktopApi";
-import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
+import { clearSessionProgress, readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
 import {
   applyReviewDecision,
   summarizeReviewSentences
@@ -129,6 +129,20 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
     });
   }, []);
 
+  const returnToMenu = useCallback(() => {
+    clearSessionProgress(REVIEW_DECK_PROGRESS_KEY);
+    setState((prev) => ({
+      ...prev,
+      order: [],
+      position: 0,
+      saving: false,
+      error: null,
+      started: false,
+      activeSession: null,
+      completedSession: null
+    }));
+  }, []);
+
   const reviewCurrent = useCallback(async (decision: ReviewDecision) => {
     if (!currentSentence || state.saving || !state.activeSession) return;
 
@@ -199,6 +213,7 @@ export function useReviewDeck(initialSentences: ReviewSentence[]) {
     filter: state.filter,
     startReview,
     startFocusedReview,
+    returnToMenu,
     completedSession: state.completedSession,
     shuffleEnabled: true,
     reviewCurrent,

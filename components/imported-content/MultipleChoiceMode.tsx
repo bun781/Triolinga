@@ -5,7 +5,7 @@ import { AudioButton } from "@/components/ui/AudioButton";
 import { getLesson } from "@/lib/desktopApi";
 import type { QuizQuestion, StudyLesson, StudyLessonMeta } from "@/lib/imported-content/types";
 import { buildQuizDeck } from "@/lib/imported-content/study-utils";
-import { readSessionProgress, writeSessionProgress } from "./sessionProgress";
+import { clearSessionProgress, readSessionProgress, writeSessionProgress } from "./sessionProgress";
 
 interface Props {
   lesson: StudyLesson | null;
@@ -149,6 +149,17 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
     } satisfies MultipleChoiceProgress);
   }, [answers, deck, index, questionCount, resultSaved, score, selectedLessonIds, showResults, status, submittedCards, testMode]);
 
+  useEffect(() => {
+    if (status === "setup") return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || isEditableShortcutTarget(event.target)) return;
+      event.preventDefault();
+      resetToMenu();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [status]);
+
   if (!availableLessons.length) {
     return (
       <section className="card stack">
@@ -233,6 +244,11 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
   }
 
   function restartSetup() {
+    resetToMenu();
+  }
+
+  function resetToMenu() {
+    clearSessionProgress(PROGRESS_KEY);
     setStatus("setup");
     setDeck([]);
     setIndex(0);
@@ -262,9 +278,12 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
         <section className="card stack quiz-card">
           <div className="row">
             <h3>Test setup</h3>
-            <button type="button" className="button secondary" onClick={() => setShowResults((value) => !value)}>
-              {showResults ? "Hide past test results" : "View past test results"}
-            </button>
+            <div className="review-filter-row">
+              <button type="button" className="button secondary" onClick={() => setShowResults((value) => !value)}>
+                {showResults ? "Hide past test results" : "Statistics"}
+              </button>
+              <a className="button secondary" href="/study/imported-content">Back</a>
+            </div>
           </div>
 
           <div className="test-setup-grid">
@@ -339,7 +358,10 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
             <span className="pill grade-stat-easy">Correct {score.correct}</span>
             <span className="pill grade-stat-again">Missed {score.wrong}</span>
           </div>
-          <button type="button" className="button" onClick={restartSetup}>New test</button>
+          <div className="review-complete-actions">
+            <button type="button" className="button" onClick={restartSetup}>New test</button>
+            <button type="button" className="button secondary" onClick={resetToMenu}>Back</button>
+          </div>
         </section>
       ) : null}
 
@@ -348,6 +370,7 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
           <div className="row">
             <span className="pill">Question {index + 1} / {deck.length}</span>
             <span className="pill">{question.focusType === "sentence" ? "Translation" : "Vocabulary"}</span>
+            <button type="button" className="button secondary" onClick={resetToMenu}>Back</button>
           </div>
 
           <p className="quiz-prompt">{question.prompt}</p>
@@ -411,6 +434,12 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
       ) : null}
     </section>
   );
+}
+
+function isEditableShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
 function sampleDeck(deck: QuizQuestion[], count: number): QuizQuestion[] {

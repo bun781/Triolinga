@@ -15,9 +15,11 @@ interface SelectedLessonProgress {
 
 export function useImportedLessonBrowser(initialLesson: StudyLesson | null, allLessons: StudyLessonMeta[]) {
   const languageGroups = useMemo(() => groupLessonsByLanguage(allLessons), [allLessons]);
+  const queryLessonId = getQueryLessonId();
   const [savedSelection] = useState(() => readSessionProgress(SELECTED_LESSON_KEY, validateSelectedLessonProgress));
-  const savedLesson = savedSelection?.lessonId
-    ? allLessons.find((item) => item.id === savedSelection.lessonId) ?? null
+  const preferredLessonId = queryLessonId ?? savedSelection?.lessonId ?? null;
+  const savedLesson = preferredLessonId
+    ? allLessons.find((item) => item.id === preferredLessonId) ?? null
     : null;
   const [lesson, setLesson] = useState(initialLesson);
   const [selectedLessonId, setSelectedLessonId] = useState(initialLesson?.id ?? savedLesson?.id ?? allLessons[0]?.id ?? "");
@@ -44,14 +46,14 @@ export function useImportedLessonBrowser(initialLesson: StudyLesson | null, allL
     }
 
     if (!selectedLessonId || !allLessons.some((item) => item.id === selectedLessonId)) {
-      const fallback = savedSelection?.lessonId
-        ? allLessons.find((item) => item.id === savedSelection.lessonId) ?? allLessons[0]
+      const fallback = preferredLessonId
+        ? allLessons.find((item) => item.id === preferredLessonId) ?? allLessons[0]
         : allLessons[0];
       setSelectedLessonId(fallback.id);
       setSelectedLanguage(fallback.language);
       writeSessionProgress(SELECTED_LESSON_KEY, { lessonId: fallback.id });
     }
-  }, [allLessons, savedSelection?.lessonId, selectedLessonId]);
+  }, [allLessons, preferredLessonId, selectedLessonId]);
 
   const activeLanguageGroup = languageGroups.find((group) => group.language === selectedLanguage) ?? languageGroups[0] ?? null;
   const languageLessons = activeLanguageGroup?.lessons ?? [];
@@ -127,4 +129,9 @@ function validateSelectedLessonProgress(value: unknown): SelectedLessonProgress 
   if (!value || typeof value !== "object") return null;
   const lessonId = (value as Partial<SelectedLessonProgress>).lessonId;
   return typeof lessonId === "string" ? { lessonId } : null;
+}
+
+function getQueryLessonId() {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("lessonId");
 }

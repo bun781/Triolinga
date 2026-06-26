@@ -1,7 +1,7 @@
-import { eq, asc, sql } from "drizzle-orm";
-import { reviewItems, sentences } from "@/db/schema";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { learningItems, reviewItems, sentenceChunkLinks, sentenceGrammarLinks, sentences, sentenceVocabularyLinks } from "@/db/schema";
 import { db, getDb } from "@/lib/server/db";
-import type { ReviewDecision, ReviewSentence } from "./types";
+import type { ReviewDecision, ReviewResetScope, ReviewSentence } from "./types";
 import { applyReviewDecision } from "./algorithm";
 
 export async function getReviewSentences(): Promise<ReviewSentence[]> {
@@ -129,6 +129,70 @@ export async function updateReviewSentenceState(
     .where(eq(reviewItems.sentenceId, sentenceId));
 
   return updated;
+}
+
+export async function resetReviewSentenceProgress(scope: ReviewResetScope): Promise<void> {
+  await getDb();
+  await ensureReviewItems();
+  const sentenceIds = await getResetSentenceIds(scope);
+  if (!sentenceIds.length) return;
+
+  await db
+    .update(sentences)
+    .set({
+      reviewState: "unknown",
+      reviewStreak: 0,
+      reviewedAt: null,
+      updatedAt: new Date()
+    })
+    .where(inArray(sentences.id, sentenceIds));
+
+  await db
+    .update(reviewItems)
+    .set({
+      dueAt: new Date(),
+      lastReviewedAt: null,
+      repetitions: 0,
+      lapses: 0,
+      difficulty: 0.3,
+      stability: 0,
+      recallMode: "full_support",
+      updatedAt: new Date()
+    })
+    .where(inArray(reviewItems.sentenceId, sentenceIds));
+}
+
+async function getResetSentenceIds(scope: ReviewResetScope): Promise<string[]> {
+  if (scope.type === "sentence") return [scope.sentenceId];
+  if (scope.type === "lesson") {
+    const rows = await db.select({ id: sentences.id }).from(sentences).where(eq(sentences.lessonId, scope.lessonId));
+    return rows.map((row) => row.id);
+  }
+
+  const linkTable = scope.itemType === "word"
+    ? sentenceVocabularyLinks
+    : scope.itemType === "grammar"
+      ? sentenceGrammarLinks
+      : sentenceChunkLinks;
+  const itemIdColumn = scope.itemType === "word"
+    ? sentenceVocabularyLinks.vocabularyItemId
+    : scope.itemType === "grammar"
+      ? sentenceGrammarLinks.grammarItemId
+      : sentenceChunkLinks.chunkItemId;
+  const conditions = [
+    eq(learningItems.type, scope.itemType),
+    eq(learningItems.canonicalKey, scope.canonicalKey)
+  ];
+  if (scope.lessonId) conditions.push(eq(sentences.lessonId, scope.lessonId));
+
+  const rows = await db
+    .select({ id: sentences.id })
+    .from(sentences)
+    .innerJoin(linkTable, eq(linkTable.sentenceId, sentences.id))
+    .innerJoin(learningItems, eq(learningItems.id, itemIdColumn))
+    .where(and(...conditions));
+
+  return [...new Set(rows.map((row) => row.id))];
 }
 
 async function ensureReviewItems() {

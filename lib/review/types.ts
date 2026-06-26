@@ -53,3 +53,8 @@ export interface ReviewSentenceRow {
   focusMeaning?: string | null;
   focusExplanation?: string | null;
 }
+
+export type ReviewResetScope =
+  | { type: "lesson"; lessonId: string }
+  | { type: "sentence"; sentenceId: string }
+  | { type: "item"; itemType: "word" | "grammar" | "chunk"; canonicalKey: string; lessonId?: string };

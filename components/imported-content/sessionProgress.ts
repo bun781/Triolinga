@@ -34,6 +34,18 @@ export function writeSessionProgress<T>(key: string, value: T) {
   }
 }
 
+export function clearSessionProgress(key: string) {
+  if (typeof window === "undefined") return;
+
+  const storageKey = formatKey(key);
+  try {
+    window.localStorage.removeItem(storageKey);
+    window.sessionStorage.removeItem(storageKey);
+  } catch {
+    // Clearing progress is best-effort; callers still reset in-memory state.
+  }
+}
+
 function formatKey(key: string) {
   return `${STORAGE_PREFIX}.${key}`;
 }

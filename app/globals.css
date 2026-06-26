@@ -601,6 +601,160 @@ button, input, textarea, select {
   line-height: 1.35;
 }
 
+.review-menu-tabs {
+  flex: 1 1 100%;
+}
+
+.review-back-button {
+  justify-self: start;
+}
+
+.review-stats-browser {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.review-stats-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.review-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  min-height: 112px;
+  padding: 12px;
+  text-align: left;
+}
+
+.review-stat-card.active {
+  border-color: rgba(47, 107, 79, 0.45);
+  box-shadow: 0 0 0 2px rgba(47, 107, 79, 0.09);
+}
+
+.review-stat-card strong {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.review-stat-card span {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.review-stat-card small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.review-stat-list {
+  display: grid;
+  gap: 14px;
+}
+
+.review-stat-list-top,
+.review-stat-tools,
+.review-stat-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.review-stat-list-top {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.review-stat-tools {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.review-stat-search {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: min(280px, 100%);
+}
+
+.review-stat-search .input {
+  min-width: 0;
+}
+
+.review-stat-results {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.review-stat-row {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 74px;
+  padding: 10px;
+}
+
+.review-stat-row a {
+  color: inherit;
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.review-stat-row strong,
+.review-stat-row span,
+.review-stat-row small {
+  overflow-wrap: anywhere;
+}
+
+.review-stat-row span,
+.review-stat-row small,
+.review-stat-empty {
+  color: var(--muted);
+}
+
+.review-stat-empty {
+  background: var(--surface-muted);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.confirm-backdrop {
+  align-items: center;
+  background: rgba(20, 24, 28, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 18px;
+  position: fixed;
+  z-index: 30;
+}
+
+.confirm-dialog {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(20, 24, 28, 0.22);
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  padding: 20px;
+  width: 100%;
+}
+
 .review-lesson-select {
   border: 0;
   display: grid;
