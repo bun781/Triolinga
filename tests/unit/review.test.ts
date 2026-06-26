@@ -6,7 +6,7 @@ import {
   getReviewShortcutAction,
   summarizeReviewSentences
 } from "@/lib/review/algorithm";
-import { isSpaceKey, shouldIgnoreReviewHotkey } from "@/lib/review/keyboard";
+import { isSpaceKey, shouldIgnoreReviewHotkey, shouldRevealOnSpaceRelease } from "@/lib/review/keyboard";
 import { buildReviewSessionSummary, classifyReviewSource } from "@/lib/review/sessionSummary";
 import type { ReviewSentenceRow } from "@/lib/review/types";
 
@@ -30,6 +30,12 @@ describe("review keyboard shortcuts", () => {
     expect(isSpaceKey(" ")).toBe(true);
     expect(isSpaceKey("Spacebar")).toBe(true);
     expect(isSpaceKey("Enter")).toBe(false);
+  });
+
+  it("only reveals on release for the same sentence that was pressed", () => {
+    expect(shouldRevealOnSpaceRelease("sentence-1", "sentence-1")).toBe(true);
+    expect(shouldRevealOnSpaceRelease("sentence-1", "sentence-2")).toBe(false);
+    expect(shouldRevealOnSpaceRelease(null, "sentence-1")).toBe(false);
   });
 });
 

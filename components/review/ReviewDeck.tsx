@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { StudyLessonMeta } from "@/lib/imported-content/types";
-import { isSpaceKey, shouldIgnoreReviewHotkey } from "@/lib/review/keyboard";
+import { isSpaceKey, shouldIgnoreReviewHotkey, shouldRevealOnSpaceRelease } from "@/lib/review/keyboard";
 import { getReviewShortcutAction } from "@/lib/review/queue";
 import type { ReviewSourceBucket } from "@/lib/review/sessionSummary";
 import type { ReviewSentence } from "@/lib/review/types";
@@ -83,7 +83,7 @@ export function ReviewDeck({
       if (!isSpaceKey(event.key)) return;
 
       event.preventDefault();
-      if (!revealed && spacePressSentenceIdRef.current === currentSentence?.id) {
+      if (!revealed && shouldRevealOnSpaceRelease(spacePressSentenceIdRef.current, currentSentence?.id ?? null)) {
         setRevealed(true);
       }
       spacePressSentenceIdRef.current = null;
