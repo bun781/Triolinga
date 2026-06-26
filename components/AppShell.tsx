@@ -52,12 +52,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`app-shell${sidebarPinned ? " sidebar-pinned" : ""}`}>
+      <Link href="/" className="app-brand" aria-label="Fydor home">
+        <span className="app-brand-mark" aria-hidden="true">F</span>
+        <span className="app-brand-name">Fydor</span>
+      </Link>
       <aside className="sidebar" aria-label="App navigation">
         <div className="sidebar-top">
-          <div className="sidebar-brand" aria-label="Fydor">
-            <span className="sidebar-brand-mark" aria-hidden="true">F</span>
-            <span className="sidebar-brand-name">Fydor</span>
-          </div>
           <button
             type="button"
             className="icon-button sidebar-toggle"

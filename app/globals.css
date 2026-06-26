@@ -68,6 +68,55 @@ button, input, textarea, select {
   grid-template-columns: 236px 1fr;
 }
 
+.app-brand {
+  align-items: center;
+  color: var(--ink);
+  display: flex;
+  font-family: Georgia, serif;
+  font-size: 12px;
+  font-weight: 400;
+  gap: 9px;
+  left: 10px;
+  letter-spacing: 0.18em;
+  position: fixed;
+  text-transform: uppercase;
+  top: 18px;
+  white-space: nowrap;
+  z-index: 80;
+}
+
+.app-brand-mark {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 6px;
+  color: var(--surface);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 18px;
+  font-weight: 700;
+  height: 34px;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  width: 34px;
+}
+
+.app-brand-name {
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-4px);
+  transition: opacity 0.12s ease, transform 0.18s ease, width 0.18s ease;
+  width: 0;
+}
+
+.app-brand:hover .app-brand-name,
+.app-brand:focus-visible .app-brand-name,
+.sidebar-pinned .app-brand-name {
+  opacity: 1;
+  transform: translateX(0);
+  width: auto;
+}
+
 .sidebar {
   background: #f2efe9;
   border-right: 1px solid var(--line);
@@ -97,19 +146,18 @@ button, input, textarea, select {
   align-items: center;
   border-bottom: 1px solid transparent;
   display: flex;
-  flex-direction: column;
   gap: 10px;
-  min-height: 82px;
+  justify-content: center;
+  min-height: 72px;
   padding-bottom: 12px;
+  padding-top: 46px;
 }
 
 .sidebar:hover .sidebar-top,
 .sidebar:focus-within .sidebar-top,
 .sidebar-pinned .sidebar-top {
   border-bottom-color: var(--line);
-  flex-direction: row;
-  justify-content: space-between;
-  min-height: 48px;
+  min-height: 72px;
 }
 
 .sidebar-toggle {
@@ -121,63 +169,6 @@ button, input, textarea, select {
 .sidebar-toggle[aria-pressed="true"] {
   background: var(--surface-muted);
   border-color: var(--ink);
-}
-
-.sidebar-brand {
-  align-items: center;
-  color: var(--ink);
-  display: flex;
-  font-family: Georgia, serif;
-  font-size: 12px;
-  font-weight: 400;
-  gap: 9px;
-  height: 36px;
-  justify-content: center;
-  letter-spacing: 0.18em;
-  min-width: 42px;
-  overflow: hidden;
-  text-transform: uppercase;
-  transition: width 0.18s ease;
-  white-space: nowrap;
-  width: 42px;
-}
-
-.sidebar-brand-mark {
-  align-items: center;
-  background: var(--ink);
-  border-radius: 6px;
-  color: var(--surface);
-  display: inline-flex;
-  flex: 0 0 auto;
-  font-size: 18px;
-  font-weight: 700;
-  height: 34px;
-  justify-content: center;
-  letter-spacing: 0;
-  line-height: 1;
-  width: 34px;
-}
-
-.sidebar-brand-name {
-  opacity: 0;
-  overflow: hidden;
-  transform: translateX(-4px);
-  transition: opacity 0.12s ease, transform 0.18s ease;
-  width: 0;
-}
-
-.sidebar:hover .sidebar-brand,
-.sidebar:focus-within .sidebar-brand,
-.sidebar-pinned .sidebar-brand {
-  width: auto;
-}
-
-.sidebar:hover .sidebar-brand-name,
-.sidebar:focus-within .sidebar-brand-name,
-.sidebar-pinned .sidebar-brand-name {
-  opacity: 1;
-  transform: translateX(0);
-  width: auto;
 }
 
 .sidebar nav {
@@ -528,7 +519,7 @@ button, input, textarea, select {
 }
 
 .review-start-panel {
-  align-items: center;
+  align-items: flex-start;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -538,10 +529,33 @@ button, input, textarea, select {
   padding: 18px;
 }
 
+.review-start-actions {
+  align-items: center;
+  display: flex;
+  flex: 1 1 480px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .review-filter-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.review-lesson-select {
+  display: grid;
+  flex: 0 1 360px;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.review-lesson-select > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .review-lesson-panel {

@@ -15,8 +15,8 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const filteredSentences = useMemo(
-    () => filterSentencesByLesson(sentences, selectedLessonIds, lessons),
-    [lessons, selectedLessonIds, sentences]
+    () => filterSentencesByLesson(sentences, selectedLessonIds),
+    [selectedLessonIds, sentences]
   );
   const sentenceCountByLesson = useMemo(() => getSentenceCountByLesson(sentences), [sentences]);
 
@@ -28,7 +28,7 @@ export default function ReviewPage() {
         if (cancelled) return;
         setSentences(queue);
         setLessons(lessonList);
-        setSelectedLessonIds(lessonList.map((lesson) => lesson.id));
+        setSelectedLessonIds(getAvailableLessonIds(queue, lessonList));
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load review sentences.");
@@ -84,12 +84,18 @@ function getSentenceCountByLesson(sentences: ReviewSentence[]) {
   return counts;
 }
 
+function getAvailableLessonIds(sentences: ReviewSentence[], lessons: StudyLessonMeta[]) {
+  const lessonIds = lessons.length
+    ? lessons.map((lesson) => lesson.id)
+    : sentences.flatMap((sentence) => sentence.lessonId ? [sentence.lessonId] : []);
+  return [...new Set(lessonIds)];
+}
+
 function filterSentencesByLesson(
   sentences: ReviewSentence[],
-  selectedLessonIds: string[],
-  lessons: StudyLessonMeta[]
+  selectedLessonIds: string[]
 ) {
-  if (!lessons.length) return sentences;
+  if (!selectedLessonIds.length) return sentences;
   const selected = new Set(selectedLessonIds);
   return sentences.filter((sentence) => sentence.lessonId && selected.has(sentence.lessonId));
 }
