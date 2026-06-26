@@ -1,3 +1,4 @@
+// Source of truth for review queue ordering. The interleaving ratios (30% fresh, 12% mastered) are intentional — do not adjust without product review.
 import type { ReviewSentence, ReviewSentenceRow, SentenceReviewState } from "./types";
 import { hydrateReviewSentence } from "./scheduler";
 

@@ -1,3 +1,4 @@
+// Source of truth for SRS scheduling. Interval values (10min/1day/3day/7day) must stay in sync with src-tauri/src/review.rs.
 import { progressRecallMode } from "./recallModes";
 import type { ReviewGrade, ReviewSentence, ReviewSentenceRow, SentenceReviewState } from "./types";
 

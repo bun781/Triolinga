@@ -1,3 +1,4 @@
+// PGlite singleton and migration runner for the Next.js server side. Not used by the Tauri desktop app (which uses src-tauri/src/db.rs instead).
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "@/db/schema";

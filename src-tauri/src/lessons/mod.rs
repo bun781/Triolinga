@@ -1,3 +1,5 @@
+// Tauri commands for lesson management: get_lessons, get_lesson, export_lesson, update_lesson, delete_lesson, preview_lesson_import, import_lesson.
+// This is the authoritative import orchestrator for production — the TypeScript importLesson.ts is preview-only.
 use crate::{db, models::*, normalize};
 use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension, Transaction};

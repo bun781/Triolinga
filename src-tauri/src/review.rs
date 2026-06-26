@@ -1,3 +1,5 @@
+// Tauri commands for the review system: get_review_queue, update_review_item, reset_review_progress.
+// SRS interval values here must stay in sync with lib/review/scheduler.ts.
 use crate::{db, models::ReviewSentence};
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};

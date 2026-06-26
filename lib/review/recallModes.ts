@@ -1,3 +1,4 @@
+// Source of truth for the 5-mode recall progression. The order is the product's core learning model — do not reorder or add modes without updating ReviewSentenceCard.tsx.
 import type { RecallMode, ReviewGrade } from "./types";
 
 export const recallModeOrder: RecallMode[] = [

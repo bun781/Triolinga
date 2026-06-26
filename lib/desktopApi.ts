@@ -1,3 +1,4 @@
+// Single point of contact between the Next.js frontend and Tauri Rust commands. All invoke() calls live here. Command name strings must match #[tauri::command] names in src-tauri/src/.
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";

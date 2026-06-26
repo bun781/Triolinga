@@ -1,3 +1,4 @@
+// Source of truth for review DB reads and writes. All reviewItems table access goes through here.
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { learningItems, reviewItems, sentenceChunkLinks, sentenceGrammarLinks, sentences, sentenceVocabularyLinks } from "@/db/schema";
 import { db, getDb } from "@/lib/server/db";
