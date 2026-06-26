@@ -51,6 +51,7 @@ interface FillBlankProgress {
   submittedCards: string[];
   score: { correct: number; wrong: number };
   resultSaved: boolean;
+  showResults: boolean;
 }
 
 export function FillBlankMode({ lesson, lessons = [] }: Props) {
@@ -67,7 +68,7 @@ export function FillBlankMode({ lesson, lessons = [] }: Props) {
   const [questionCount, setQuestionCount] = useState(() => initialProgress?.questionCount ?? DEFAULT_QUESTION_COUNT);
   const [testMode, setTestMode] = useState<TestMode>(() => initialProgress?.testMode ?? "continuous");
   const [answerMode, setAnswerMode] = useState<AnswerMode>(() => initialProgress?.answerMode ?? "choice");
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(() => initialProgress?.showResults ?? false);
   const [savedResults, setSavedResults] = useState<SavedTestResult[]>(() => readSavedResults());
   const [status, setStatus] = useState<TestStatus>(() => initialProgress?.status ?? "setup");
   const [deck, setDeck] = useState<FillBlankCard[]>(() => initialProgress?.deck ?? []);
@@ -155,9 +156,10 @@ export function FillBlankMode({ lesson, lessons = [] }: Props) {
       answers,
       submittedCards: [...submittedCards],
       score,
-      resultSaved
+      resultSaved,
+      showResults
     } satisfies FillBlankProgress);
-  }, [answerMode, answers, deck, index, questionCount, resultSaved, score, selectedLessonIds, status, submittedCards, testMode]);
+  }, [answerMode, answers, deck, index, questionCount, resultSaved, score, selectedLessonIds, showResults, status, submittedCards, testMode]);
 
   if (!availableLessons.length) {
     return (
@@ -593,6 +595,7 @@ function validateFillBlankProgress(value: unknown): FillBlankProgress | null {
   if (!isStringArray(item.submittedCards)) return null;
   if (!isScore(item.score)) return null;
   if (typeof item.resultSaved !== "boolean") return null;
+  if (item.showResults !== undefined && typeof item.showResults !== "boolean") return null;
 
   const deck = item.deck;
 
@@ -607,7 +610,8 @@ function validateFillBlankProgress(value: unknown): FillBlankProgress | null {
     answers: item.answers,
     submittedCards: item.submittedCards.filter((id) => deck.some((card) => card.id === id)),
     score: item.score,
-    resultSaved: item.resultSaved
+    resultSaved: item.resultSaved,
+    showResults: item.showResults ?? false
   };
 }
 

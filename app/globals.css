@@ -536,6 +536,71 @@ button, input, textarea, select {
   gap: 8px;
 }
 
+.review-queue-dashboard {
+  display: grid;
+  flex: 1 1 520px;
+  gap: 12px;
+  min-width: 280px;
+}
+
+.review-queue-dashboard-top {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.review-queue-dashboard-top h2 {
+  font-size: 16px;
+}
+
+.review-queue-dashboard-top .pill {
+  background: var(--surface);
+  max-width: 180px;
+  text-align: center;
+}
+
+.review-queue-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(118px, 1fr));
+}
+
+.review-queue-stat {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  min-height: 132px;
+  padding: 12px;
+}
+
+.review-queue-stat-icon {
+  align-items: center;
+  color: var(--accent);
+  display: inline-flex;
+  height: 22px;
+}
+
+.review-queue-stat strong {
+  color: var(--ink);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.review-queue-stat span:not(.review-queue-stat-icon) {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.review-queue-stat small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .review-lesson-select {
   border: 0;
   display: grid;
@@ -2897,15 +2962,27 @@ textarea.input {
 }
 
 .test-setup-grid {
+  align-items: start;
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.8fr);
 }
 
-.test-lesson-list,
 .past-results {
   display: grid;
   gap: 8px;
+}
+
+.test-lesson-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  max-height: clamp(180px, 34vh, 320px);
+  overflow: auto;
+  padding: 6px;
 }
 
 .test-check-row,
@@ -2926,6 +3003,14 @@ textarea.input {
 .test-check-row span {
   display: grid;
   gap: 2px;
+  min-width: 0;
+}
+
+.test-check-row strong,
+.test-check-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .test-check-row small,
@@ -3042,6 +3127,15 @@ textarea.input {
     grid-template-columns: 1fr;
   }
 
+  .test-setup-grid,
+  .test-lesson-list {
+    grid-template-columns: 1fr;
+  }
+
+  .test-lesson-list {
+    max-height: 260px;
+  }
+
   .builder-layout {
     grid-template-columns: 1fr;
   }
@@ -3111,6 +3205,27 @@ textarea.input {
   .action-bar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .review-shell {
+    padding: 18px;
+  }
+
+  .review-header,
+  .review-queue-dashboard-top {
+    flex-direction: column;
+  }
+
+  .review-summary {
+    justify-content: flex-start;
+  }
+
+  .review-start-panel {
+    display: grid;
+  }
+
+  .review-queue-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .mode-tabs,

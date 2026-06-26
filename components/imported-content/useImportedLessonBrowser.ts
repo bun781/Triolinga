@@ -15,8 +15,8 @@ interface SelectedLessonProgress {
 
 export function useImportedLessonBrowser(initialLesson: StudyLesson | null, allLessons: StudyLessonMeta[]) {
   const languageGroups = useMemo(() => groupLessonsByLanguage(allLessons), [allLessons]);
-  const savedSelection = readSessionProgress(SELECTED_LESSON_KEY, validateSelectedLessonProgress);
-  const savedLesson = savedSelection
+  const [savedSelection] = useState(() => readSessionProgress(SELECTED_LESSON_KEY, validateSelectedLessonProgress));
+  const savedLesson = savedSelection?.lessonId
     ? allLessons.find((item) => item.id === savedSelection.lessonId) ?? null
     : null;
   const [lesson, setLesson] = useState(initialLesson);
@@ -44,11 +44,14 @@ export function useImportedLessonBrowser(initialLesson: StudyLesson | null, allL
     }
 
     if (!selectedLessonId || !allLessons.some((item) => item.id === selectedLessonId)) {
-      const fallback = allLessons[0];
+      const fallback = savedSelection?.lessonId
+        ? allLessons.find((item) => item.id === savedSelection.lessonId) ?? allLessons[0]
+        : allLessons[0];
       setSelectedLessonId(fallback.id);
       setSelectedLanguage(fallback.language);
+      writeSessionProgress(SELECTED_LESSON_KEY, { lessonId: fallback.id });
     }
-  }, [allLessons, selectedLessonId]);
+  }, [allLessons, savedSelection?.lessonId, selectedLessonId]);
 
   const activeLanguageGroup = languageGroups.find((group) => group.language === selectedLanguage) ?? languageGroups[0] ?? null;
   const languageLessons = activeLanguageGroup?.lessons ?? [];

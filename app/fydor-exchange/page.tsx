@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
 import {
   countSentences,
   createFydorPack,
@@ -57,25 +58,54 @@ interface InstallSummary {
 }
 
 const INSTALLED_PACKS_KEY = "fydor.exchange.installedPacks.v1";
+const EXCHANGE_PROGRESS_KEY = "fydor.exchange.workspace";
 
 const emptyPackSource = "";
 
+interface ExchangeProgress {
+  packSource: string;
+  duplicateMode: DuplicateMode;
+  selectedInstallLessons: number[];
+  installSummary: InstallSummary | null;
+  status: string;
+  selectedLessonIds: string[];
+  metadata: {
+    title: string;
+    description: string;
+    author: string;
+    organization: string;
+    version: string;
+    license: string;
+    tags: string;
+  };
+  packSearch: string;
+  packLanguage: string;
+  packLevel: string;
+}
+
 export default function FydorExchangePage() {
+  const [savedProgress] = useState(() => readSessionProgress(EXCHANGE_PROGRESS_KEY, validateExchangeProgress));
   const [lessons, setLessons] = useState<StudyLessonMeta[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(true);
   const [installedPacks, setInstalledPacks] = useState<InstalledPackRecord[]>([]);
-  const [packSource, setPackSource] = useState(emptyPackSource);
-  const [packPreview, setPackPreview] = useState<FydorPackValidation | null>(null);
-  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
-  const [selectedInstallLessons, setSelectedInstallLessons] = useState<Set<number>>(new Set());
+  const [packSource, setPackSource] = useState(savedProgress?.packSource ?? emptyPackSource);
+  const [packPreview, setPackPreview] = useState<FydorPackValidation | null>(() => (
+    savedProgress?.packSource ? parseFydorPack(savedProgress.packSource) : null
+  ));
+  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>(savedProgress?.duplicateMode ?? "skip");
+  const [selectedInstallLessons, setSelectedInstallLessons] = useState<Set<number>>(() => (
+    new Set(savedProgress?.selectedInstallLessons ?? [])
+  ));
   const [installing, setInstalling] = useState(false);
-  const [installSummary, setInstallSummary] = useState<InstallSummary | null>(null);
-  const [status, setStatus] = useState("");
+  const [installSummary, setInstallSummary] = useState<InstallSummary | null>(savedProgress?.installSummary ?? null);
+  const [status, setStatus] = useState(savedProgress?.status ?? "");
   const [errors, setErrors] = useState<string[]>([]);
-  const [selectedLessonIds, setSelectedLessonIds] = useState<Set<string>>(new Set());
+  const [selectedLessonIds, setSelectedLessonIds] = useState<Set<string>>(() => (
+    new Set(savedProgress?.selectedLessonIds ?? [])
+  ));
   const [exporting, setExporting] = useState(false);
   const [exportPreview, setExportPreview] = useState<FydorPack | null>(null);
-  const [metadata, setMetadata] = useState({
+  const [metadata, setMetadata] = useState(savedProgress?.metadata ?? {
     title: "My Fydor Pack",
     description: "",
     author: "",
@@ -84,14 +114,29 @@ export default function FydorExchangePage() {
     license: "CC BY",
     tags: ""
   });
-  const [packSearch, setPackSearch] = useState("");
-  const [packLanguage, setPackLanguage] = useState("all");
-  const [packLevel, setPackLevel] = useState("all");
+  const [packSearch, setPackSearch] = useState(savedProgress?.packSearch ?? "");
+  const [packLanguage, setPackLanguage] = useState(savedProgress?.packLanguage ?? "all");
+  const [packLevel, setPackLevel] = useState(savedProgress?.packLevel ?? "all");
 
   useEffect(() => {
     refreshLessons();
     setInstalledPacks(readInstalledPacks());
   }, []);
+
+  useEffect(() => {
+    writeSessionProgress(EXCHANGE_PROGRESS_KEY, {
+      packSource,
+      duplicateMode,
+      selectedInstallLessons: [...selectedInstallLessons],
+      installSummary,
+      status,
+      selectedLessonIds: [...selectedLessonIds],
+      metadata,
+      packSearch,
+      packLanguage,
+      packLevel
+    } satisfies ExchangeProgress);
+  }, [duplicateMode, installSummary, metadata, packLanguage, packLevel, packSearch, packSource, selectedInstallLessons, selectedLessonIds, status]);
 
   const existingLessonByKey = useMemo(() => {
     const map = new Map<string, StudyLessonMeta>();
@@ -737,4 +782,71 @@ function writeInstalledPacks(packs: InstalledPackRecord[]) {
 function upsertInstalledPack(packs: InstalledPackRecord[], nextPack: InstalledPackRecord): InstalledPackRecord[] {
   const existing = packs.filter((pack) => pack.id !== nextPack.id);
   return [nextPack, ...existing];
+}
+
+function validateExchangeProgress(value: unknown): ExchangeProgress | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<ExchangeProgress>;
+
+  if (typeof item.packSource !== "string") return null;
+  if (!isDuplicateMode(item.duplicateMode)) return null;
+  if (!isNumberArray(item.selectedInstallLessons)) return null;
+  if (item.installSummary !== null && item.installSummary !== undefined && !isInstallSummary(item.installSummary)) return null;
+  if (typeof item.status !== "string") return null;
+  if (!isStringArray(item.selectedLessonIds)) return null;
+  if (!isExchangeMetadata(item.metadata)) return null;
+  if (typeof item.packSearch !== "string") return null;
+  if (typeof item.packLanguage !== "string") return null;
+  if (typeof item.packLevel !== "string") return null;
+
+  return {
+    packSource: item.packSource,
+    duplicateMode: item.duplicateMode,
+    selectedInstallLessons: item.selectedInstallLessons,
+    installSummary: item.installSummary ?? null,
+    status: item.status,
+    selectedLessonIds: item.selectedLessonIds,
+    metadata: item.metadata,
+    packSearch: item.packSearch,
+    packLanguage: item.packLanguage,
+    packLevel: item.packLevel
+  };
+}
+
+function isDuplicateMode(value: unknown): value is DuplicateMode {
+  return value === "skip" || value === "replace" || value === "keep";
+}
+
+function isInstallSummary(value: unknown): value is InstallSummary {
+  if (!value || typeof value !== "object") return false;
+  const summary = value as Partial<InstallSummary>;
+  return (
+    typeof summary.installed === "number" &&
+    typeof summary.skipped === "number" &&
+    typeof summary.replaced === "number" &&
+    typeof summary.sentenceCount === "number" &&
+    isStringArray(summary.details)
+  );
+}
+
+function isExchangeMetadata(value: unknown): value is ExchangeProgress["metadata"] {
+  if (!value || typeof value !== "object") return false;
+  const metadata = value as Partial<ExchangeProgress["metadata"]>;
+  return (
+    typeof metadata.title === "string" &&
+    typeof metadata.description === "string" &&
+    typeof metadata.author === "string" &&
+    typeof metadata.organization === "string" &&
+    typeof metadata.version === "string" &&
+    typeof metadata.license === "string" &&
+    typeof metadata.tags === "string"
+  );
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "number" && Number.isInteger(item));
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
 }

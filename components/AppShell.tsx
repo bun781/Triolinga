@@ -15,9 +15,16 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import fyLogo from "@/Fy.png";
 import { GuidedTour, replayGuidedTour } from "@/components/system/GuidedTour";
+import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
+
+const APP_SHELL_PROGRESS_KEY = "app-shell";
+
+interface AppShellProgress {
+  sidebarPinned: boolean;
+}
 
 const navSections: Array<{
   label: string;
@@ -50,7 +57,13 @@ const navSections: Array<{
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(() => (
+    readSessionProgress(APP_SHELL_PROGRESS_KEY, validateAppShellProgress)?.sidebarPinned ?? false
+  ));
+
+  useEffect(() => {
+    writeSessionProgress(APP_SHELL_PROGRESS_KEY, { sidebarPinned } satisfies AppShellProgress);
+  }, [sidebarPinned]);
 
   return (
     <div className={`app-shell${sidebarPinned ? " sidebar-pinned" : ""}`}>
@@ -103,4 +116,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <GuidedTour />
     </div>
   );
+}
+
+function validateAppShellProgress(value: unknown): AppShellProgress | null {
+  if (!value || typeof value !== "object") return null;
+  const sidebarPinned = (value as Partial<AppShellProgress>).sidebarPinned;
+  return typeof sidebarPinned === "boolean" ? { sidebarPinned } : null;
 }

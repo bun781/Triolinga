@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { CalendarClock, CheckCircle2, Layers3, Sparkles } from "lucide-react";
+import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
 import type { StudyLessonMeta } from "@/lib/imported-content/types";
 import { isSpaceKey, shouldIgnoreReviewHotkey, shouldRevealOnSpaceRelease } from "@/lib/review/keyboard";
-import { getReviewShortcutAction } from "@/lib/review/queue";
+import { buildInterleavedReviewQueue, getReviewShortcutAction } from "@/lib/review/queue";
 import type { ReviewSourceBucket } from "@/lib/review/sessionSummary";
 import type { ReviewSentence } from "@/lib/review/types";
 import { useReviewDeck } from "@/lib/review/useReviewDeck";
 import { ReviewControls } from "./ReviewControls";
 import { ReviewSentenceCard } from "./ReviewSentenceCard";
+
+const REVIEW_REVEAL_PROGRESS_KEY = "review.reveal";
+
+interface ReviewRevealProgress {
+  sentenceId: string | null;
+  revealed: boolean;
+}
 
 interface ReviewLessonOption {
   id: string;
@@ -53,12 +62,21 @@ export function ReviewDeck({
   const [revealed, setRevealed] = useState(false);
   const spacePressSentenceIdRef = useRef<string | null>(null);
   const availableBreakdown = summarizeAvailableSentences(sentences);
+  const queueDashboard = buildQueueDashboard(sentences);
   const lessonTitleById = new Map(lessonOptions.map((lesson) => [lesson.id, lesson.title]));
 
   useEffect(() => {
-    setRevealed(false);
+    const saved = readSessionProgress(REVIEW_REVEAL_PROGRESS_KEY, validateReviewRevealProgress);
+    setRevealed(Boolean(saved?.revealed && saved.sentenceId === (currentSentence?.id ?? null)));
     spacePressSentenceIdRef.current = null;
   }, [currentSentence?.id]);
+
+  useEffect(() => {
+    writeSessionProgress(REVIEW_REVEAL_PROGRESS_KEY, {
+      sentenceId: currentSentence?.id ?? null,
+      revealed
+    } satisfies ReviewRevealProgress);
+  }, [currentSentence?.id, revealed]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -138,13 +156,14 @@ export function ReviewDeck({
               totalSentenceCount={totalSentenceCount}
               onChange={onSelectedLessonIdsChange}
             />
+            <ReviewQueueDashboard dashboard={queueDashboard} />
             <div className="review-start-actions">
               <button className="button" type="button" onClick={() => startReview("mixed")}>
                 Start Mixed Review
               </button>
               <div className="review-filter-row" aria-label="Review filters">
-                <button className="button secondary" type="button" onClick={() => startReview("due")}>Due only</button>
-                <button className="button secondary" type="button" onClick={() => startReview("new")}>New only</button>
+                <button className="button secondary" type="button" onClick={() => startReview("due")} disabled={queueDashboard.due === 0}>Due only</button>
+                <button className="button secondary" type="button" onClick={() => startReview("new")} disabled={queueDashboard.new === 0}>New only</button>
                 <button className="button secondary" type="button" onClick={() => startReview("all")}>All selected</button>
               </div>
             </div>
@@ -209,6 +228,14 @@ export function ReviewDeck({
       <LearningSciencePanel compact />
     </div>
   );
+}
+
+function validateReviewRevealProgress(value: unknown): ReviewRevealProgress | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<ReviewRevealProgress>;
+  if (item.sentenceId !== null && typeof item.sentenceId !== "string") return null;
+  if (typeof item.revealed !== "boolean") return null;
+  return { sentenceId: item.sentenceId ?? null, revealed: item.revealed };
 }
 
 function ReviewSessionComplete({
@@ -340,6 +367,60 @@ function ReviewStartHeader({ summary }: { summary: ReturnType<typeof useReviewDe
   );
 }
 
+interface ReviewQueueDashboardData {
+  due: number;
+  new: number;
+  mastered: number;
+  mixedCount: number;
+  allCount: number;
+  nextDueLabel: string;
+}
+
+function ReviewQueueDashboard({ dashboard }: { dashboard: ReviewQueueDashboardData }) {
+  const mixedDetail = dashboard.mixedCount === dashboard.allCount
+    ? "Mixed will include every selected sentence."
+    : `Mixed will start ${dashboard.mixedCount} of ${dashboard.allCount} selected sentences.`;
+
+  return (
+    <section className="review-queue-dashboard" aria-label="Review queue dashboard">
+      <div className="review-queue-dashboard-top">
+        <div>
+          <h2>Queue dashboard</h2>
+          <p className="muted">{mixedDetail}</p>
+        </div>
+        <span className="pill">{dashboard.nextDueLabel}</span>
+      </div>
+      <div className="review-queue-stats">
+        <QueueStat icon={<CalendarClock size={18} />} label="Due now" value={dashboard.due} detail="Reviewed cards ready again." />
+        <QueueStat icon={<Sparkles size={18} />} label="New" value={dashboard.new} detail="Cards with no repetitions yet." />
+        <QueueStat icon={<CheckCircle2 size={18} />} label="Not due" value={dashboard.mastered} detail="Reviewed cards waiting for later." />
+        <QueueStat icon={<Layers3 size={18} />} label="Mixed size" value={dashboard.mixedCount} detail="What Start Mixed Review opens." />
+      </div>
+    </section>
+  );
+}
+
+function QueueStat({
+  icon,
+  label,
+  value,
+  detail
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+  detail: string;
+}) {
+  return (
+    <div className="review-queue-stat">
+      <span className="review-queue-stat-icon" aria-hidden="true">{icon}</span>
+      <strong>{value}</strong>
+      <span>{label}</span>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
 function ReviewLessonSelect({
   lessons,
   selectedLessonIds,
@@ -432,6 +513,42 @@ function summarizeAvailableSentences(sentences: ReviewSentence[]) {
     else totals.mastered += 1;
     return totals;
   }, { due: 0, new: 0, mastered: 0 });
+}
+
+function buildQueueDashboard(sentences: ReviewSentence[]): ReviewQueueDashboardData {
+  const now = new Date();
+  const available = summarizeAvailableSentences(sentences);
+  const mixedCount = buildInterleavedReviewQueue(sentences, {
+    filter: "mixed",
+    seed: 0,
+    shuffled: false,
+    now
+  }).length;
+  const nextDueAt = sentences
+    .filter((sentence) => (sentence.repetitions ?? 0) > 0)
+    .map((sentence) => sentence.dueAt ? new Date(sentence.dueAt) : null)
+    .filter((date): date is Date => date instanceof Date && date.getTime() > now.getTime())
+    .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
+
+  return {
+    ...available,
+    mixedCount,
+    allCount: sentences.length,
+    nextDueLabel: available.due > 0
+      ? `${available.due} due now`
+      : nextDueAt
+        ? `Next due ${formatRelativeDueTime(nextDueAt, now)}`
+        : "No scheduled due cards"
+  };
+}
+
+function formatRelativeDueTime(dueAt: Date, now: Date) {
+  const minutes = Math.max(1, Math.ceil((dueAt.getTime() - now.getTime()) / (60 * 1000)));
+  if (minutes < 60) return `in ${minutes}m`;
+  const hours = Math.ceil(minutes / 60);
+  if (hours < 24) return `in ${hours}h`;
+  const days = Math.ceil(hours / 24);
+  return `in ${days}d`;
 }
 
 function LearningSciencePanel({ compact = false }: { compact?: boolean }) {

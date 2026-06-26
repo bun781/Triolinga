@@ -19,6 +19,7 @@ import { LanguageField } from "@/components/admin-imports/LanguageField";
 import { ImportHelpPanel } from "@/components/language/ImportHelpPanel";
 import { ImportPreview } from "@/components/language/ImportPreview";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
 import {
   deleteLesson as deleteLessonApi,
   exportLesson as exportLessonApi,
@@ -58,15 +59,33 @@ interface LessonImportsPageProps {
   initialMode?: WorkspaceMode;
 }
 
+const LESSON_MANAGER_PROGRESS_KEY = "lesson-manager.workspace";
+
+interface LessonManagerProgress {
+  mode: WorkspaceMode;
+  lesson: LessonImportInput;
+  activeSentenceIndex: number;
+  draft: AnnotationDraft;
+  source: string;
+  appendSource: string;
+  targetLessonId: string;
+  editorLessonId: string | null;
+  selectedLibraryLessonId: string | null;
+}
+
 // Chunk: editor state and data loading
 export default function LessonImportsPage({ initialMode = "builder" }: LessonImportsPageProps) {
-  const [mode, setMode] = useState<WorkspaceMode>(initialMode);
-  const [lesson, setLesson] = useState<LessonImportInput>(initialLesson);
-  const [activeSentenceIndex, setActiveSentenceIndex] = useState(0);
+  const [savedProgress] = useState(() => readSessionProgress(LESSON_MANAGER_PROGRESS_KEY, validateLessonManagerProgress));
+  const initialEditorLesson = savedProgress?.lesson ?? initialLesson;
+  const [mode, setMode] = useState<WorkspaceMode>(savedProgress?.mode ?? initialMode);
+  const [lesson, setLesson] = useState<LessonImportInput>(initialEditorLesson);
+  const [activeSentenceIndex, setActiveSentenceIndex] = useState(() => (
+    clampSentenceIndex(savedProgress?.activeSentenceIndex ?? 0, initialEditorLesson)
+  ));
   const [selection, setSelection] = useState<SelectedSpan | null>(null);
-  const [draft, setDraft] = useState<AnnotationDraft>(createDraft());
-  const [source, setSource] = useState(() => stringifyLesson(initialLesson));
-  const [appendSource, setAppendSource] = useState("");
+  const [draft, setDraft] = useState<AnnotationDraft>(savedProgress?.draft ?? createDraft());
+  const [source, setSource] = useState(() => savedProgress?.source ?? stringifyLesson(initialEditorLesson));
+  const [appendSource, setAppendSource] = useState(savedProgress?.appendSource ?? "");
   const [preview, setPreview] = useState<LessonImportPreviewResult | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState("");
@@ -75,9 +94,9 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
   const [summary, setSummary] = useState<LessonImportSummary | null>(null);
   const [lessonOptions, setLessonOptions] = useState<StudyLessonMeta[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(true);
-  const [targetLessonId, setTargetLessonId] = useState("new");
-  const [editorLessonId, setEditorLessonId] = useState<string | null>(null);
-  const [selectedLibraryLessonId, setSelectedLibraryLessonId] = useState<string | null>(null);
+  const [targetLessonId, setTargetLessonId] = useState(savedProgress?.targetLessonId ?? "new");
+  const [editorLessonId, setEditorLessonId] = useState<string | null>(savedProgress?.editorLessonId ?? null);
+  const [selectedLibraryLessonId, setSelectedLibraryLessonId] = useState<string | null>(savedProgress?.selectedLibraryLessonId ?? null);
 
   const activeSentence = lesson.sentences[activeSentenceIndex] ?? createEmptySentence();
   const appendingToExistingLesson = editorLessonId === null && targetLessonId !== "new";
@@ -125,6 +144,20 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
     window.localStorage.removeItem(LESSON_IMPORT_DRAFT_KEY);
     loadLessonSource(importedSource, "builder");
   }, []);
+
+  useEffect(() => {
+    writeSessionProgress(LESSON_MANAGER_PROGRESS_KEY, {
+      mode,
+      lesson,
+      activeSentenceIndex,
+      draft,
+      source,
+      appendSource,
+      targetLessonId,
+      editorLessonId,
+      selectedLibraryLessonId
+    } satisfies LessonManagerProgress);
+  }, [activeSentenceIndex, appendSource, draft, editorLessonId, lesson, mode, selectedLibraryLessonId, source, targetLessonId]);
 
   function syncLesson(nextLesson: LessonImportInput) {
     setLesson(nextLesson);
@@ -487,7 +520,7 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
     }
   }
 
-  function slugifyLessonTitle(title: string) {
+function slugifyLessonTitle(title: string) {
     return title
       .toLowerCase()
       .trim()
@@ -947,5 +980,68 @@ export default function LessonImportsPage({ initialMode = "builder" }: LessonImp
         </div>
       ) : null}
     </AppShell>
+  );
+}
+
+function validateLessonManagerProgress(value: unknown): LessonManagerProgress | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<LessonManagerProgress>;
+
+  if (!isWorkspaceMode(item.mode)) return null;
+  if (!isLessonImportInput(item.lesson)) return null;
+  if (typeof item.activeSentenceIndex !== "number" || !Number.isInteger(item.activeSentenceIndex)) return null;
+  if (!isAnnotationDraft(item.draft)) return null;
+  if (typeof item.source !== "string") return null;
+  if (typeof item.appendSource !== "string") return null;
+  if (typeof item.targetLessonId !== "string") return null;
+  if (item.editorLessonId !== null && typeof item.editorLessonId !== "string") return null;
+  if (item.selectedLibraryLessonId !== null && typeof item.selectedLibraryLessonId !== "string") return null;
+
+  return {
+    mode: item.mode,
+    lesson: item.lesson,
+    activeSentenceIndex: clampSentenceIndex(item.activeSentenceIndex, item.lesson),
+    draft: item.draft,
+    source: item.source,
+    appendSource: item.appendSource,
+    targetLessonId: item.targetLessonId,
+    editorLessonId: item.editorLessonId,
+    selectedLibraryLessonId: item.selectedLibraryLessonId
+  };
+}
+
+function clampSentenceIndex(index: number, lesson: LessonImportInput) {
+  return Math.min(Math.max(0, index), Math.max(0, lesson.sentences.length - 1));
+}
+
+function isWorkspaceMode(value: unknown): value is WorkspaceMode {
+  return value === "builder" || value === "json" || value === "lessons";
+}
+
+function isLessonImportInput(value: unknown): value is LessonImportInput {
+  if (!value || typeof value !== "object") return false;
+  const lesson = value as Partial<LessonImportInput>;
+  return (
+    typeof lesson.language === "string" &&
+    typeof lesson.baseLanguage === "string" &&
+    typeof lesson.title === "string" &&
+    Array.isArray(lesson.sentences)
+  );
+}
+
+function isAnnotationDraft(value: unknown): value is AnnotationDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Partial<AnnotationDraft>;
+  return (
+    (draft.kind === "word" || draft.kind === "grammar" || draft.kind === "chunk") &&
+    typeof draft.surface === "string" &&
+    typeof draft.lemma === "string" &&
+    typeof draft.pattern === "string" &&
+    typeof draft.meaning === "string" &&
+    typeof draft.explanation === "string" &&
+    typeof draft.role === "string" &&
+    typeof draft.chunkType === "string" &&
+    typeof draft.level === "string" &&
+    typeof draft.tags === "string"
   );
 }

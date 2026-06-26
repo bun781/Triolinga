@@ -5,8 +5,15 @@ import { AppShell } from "@/components/AppShell";
 import { ReviewDeck } from "@/components/review/ReviewDeck";
 import { PageState } from "@/components/system/PageState";
 import { getLessons, getReviewQueue } from "@/lib/desktopApi";
+import { readSessionProgress, writeSessionProgress } from "@/components/imported-content/sessionProgress";
 import type { StudyLessonMeta } from "@/lib/imported-content/types";
 import type { ReviewSentence } from "@/lib/review/types";
+
+const REVIEW_SELECTION_KEY = "review.selected-lessons";
+
+interface ReviewSelectionProgress {
+  lessonIds: string[];
+}
 
 export default function ReviewPage() {
   const [sentences, setSentences] = useState<ReviewSentence[]>([]);
@@ -26,9 +33,15 @@ export default function ReviewPage() {
     Promise.all([getReviewQueue(), getLessons()])
       .then(([queue, lessonList]) => {
         if (cancelled) return;
+        const availableLessonIds = getAvailableLessonIds(queue, lessonList);
+        const savedSelection = readSessionProgress(REVIEW_SELECTION_KEY, validateReviewSelectionProgress);
+        const restoredLessonIds = savedSelection
+          ? savedSelection.lessonIds.filter((id) => availableLessonIds.includes(id))
+          : [];
+
         setSentences(queue);
         setLessons(lessonList);
-        setSelectedLessonIds(getAvailableLessonIds(queue, lessonList));
+        setSelectedLessonIds(restoredLessonIds.length ? restoredLessonIds : availableLessonIds);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load review sentences.");
@@ -61,7 +74,10 @@ export default function ReviewPage() {
           sentenceCountByLesson={sentenceCountByLesson}
           selectedLessonIds={selectedLessonIds}
           sentences={filteredSentences}
-          onSelectedLessonIdsChange={setSelectedLessonIds}
+          onSelectedLessonIdsChange={(lessonIds) => {
+            setSelectedLessonIds(lessonIds);
+            writeSessionProgress(REVIEW_SELECTION_KEY, { lessonIds });
+          }}
         />
       ) : (
         <PageState
@@ -73,6 +89,14 @@ export default function ReviewPage() {
       )}
     </AppShell>
   );
+}
+
+function validateReviewSelectionProgress(value: unknown): ReviewSelectionProgress | null {
+  if (!value || typeof value !== "object") return null;
+  const lessonIds = (value as Partial<ReviewSelectionProgress>).lessonIds;
+  return Array.isArray(lessonIds) && lessonIds.every((id) => typeof id === "string")
+    ? { lessonIds }
+    : null;
 }
 
 function getSentenceCountByLesson(sentences: ReviewSentence[]) {

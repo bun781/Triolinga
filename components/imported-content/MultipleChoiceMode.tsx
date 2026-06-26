@@ -36,6 +36,7 @@ interface MultipleChoiceProgress {
   submittedCards: string[];
   score: { correct: number; wrong: number };
   resultSaved: boolean;
+  showResults: boolean;
 }
 
 const RESULTS_KEY = "fydor.multiple-choice-test-results";
@@ -55,7 +56,7 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState(() => initialProgress?.questionCount ?? DEFAULT_QUESTION_COUNT);
   const [testMode, setTestMode] = useState<TestMode>(() => initialProgress?.testMode ?? "continuous");
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(() => initialProgress?.showResults ?? false);
   const [savedResults, setSavedResults] = useState<SavedTestResult[]>(() => readSavedResults());
   const [status, setStatus] = useState<TestStatus>(() => initialProgress?.status ?? "setup");
   const [deck, setDeck] = useState<QuizQuestion[]>(() => initialProgress?.deck ?? []);
@@ -143,9 +144,10 @@ export function MultipleChoiceMode({ lesson, lessons = [] }: Props) {
       answers,
       submittedCards: [...submittedCards],
       score,
-      resultSaved
+      resultSaved,
+      showResults
     } satisfies MultipleChoiceProgress);
-  }, [answers, deck, index, questionCount, resultSaved, score, selectedLessonIds, status, submittedCards, testMode]);
+  }, [answers, deck, index, questionCount, resultSaved, score, selectedLessonIds, showResults, status, submittedCards, testMode]);
 
   if (!availableLessons.length) {
     return (
@@ -526,6 +528,7 @@ function validateMultipleChoiceProgress(value: unknown): MultipleChoiceProgress 
   if (!isStringArray(item.submittedCards)) return null;
   if (!isScore(item.score)) return null;
   if (typeof item.resultSaved !== "boolean") return null;
+  if (item.showResults !== undefined && typeof item.showResults !== "boolean") return null;
   const deck = item.deck;
 
   return {
@@ -538,7 +541,8 @@ function validateMultipleChoiceProgress(value: unknown): MultipleChoiceProgress 
     answers: item.answers,
     submittedCards: item.submittedCards.filter((id) => deck.some((question) => getQuestionKey(question) === id)),
     score: item.score,
-    resultSaved: item.resultSaved
+    resultSaved: item.resultSaved,
+    showResults: item.showResults ?? false
   };
 }
 
