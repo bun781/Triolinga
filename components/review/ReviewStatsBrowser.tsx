@@ -45,6 +45,28 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
   const [confirm, setConfirm] = useState<{ title: string; description: string; scope: ReviewResetScope } | null>(null);
   const stats = useMemo(() => buildReviewStats(sentences, lessons, lessonTitleById), [lessonTitleById, lessons, sentences]);
   const active = stats[activeKey];
+  const overviewCharts = useMemo(() => [
+    {
+      label: "Sentences",
+      remembered: stats["remembered-sentences"].items.length,
+      needsReview: stats["needs-sentences"].items.length
+    },
+    {
+      label: "Words",
+      remembered: stats["remembered-words"].items.length,
+      needsReview: stats["needs-words"].items.length
+    },
+    {
+      label: "Grammar",
+      remembered: stats["remembered-grammar"].items.length,
+      needsReview: stats["needs-grammar"].items.length
+    },
+    {
+      label: "Chunks",
+      remembered: stats["remembered-chunks"].items.length,
+      needsReview: stats["needs-chunks"].items.length
+    }
+  ], [stats]);
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const rows = normalized
@@ -62,6 +84,25 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
 
   return (
     <section className="review-stats-browser">
+      <div className="review-queue-dashboard-top">
+        <div>
+          <h2>Statistics dashboard</h2>
+          <p className="muted">{active.detail}</p>
+        </div>
+        <span className="pill">{filtered.length} items</span>
+      </div>
+
+      <div className="review-stats-overview">
+        {overviewCharts.map((chart) => (
+          <StatPieCard
+            key={chart.label}
+            label={chart.label}
+            remembered={chart.remembered}
+            needsReview={chart.needsReview}
+          />
+        ))}
+      </div>
+
       <div className="review-stats-grid">
         {(Object.keys(stats) as StatKey[]).map((key) => {
           const stat = stats[key];
@@ -163,6 +204,67 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
         </div>
       ) : null}
     </section>
+  );
+}
+
+function StatPieCard({
+  label,
+  remembered,
+  needsReview
+}: {
+  label: string;
+  remembered: number;
+  needsReview: number;
+}) {
+  const total = remembered + needsReview;
+  const rememberedShare = total > 0 ? remembered / total : 0;
+  const needsShare = total > 0 ? needsReview / total : 0;
+  const radius = 24;
+  const size = 72;
+  const circumference = 2 * Math.PI * radius;
+  const rememberedLength = circumference * rememberedShare;
+  const needsLength = circumference * needsShare;
+
+  return (
+    <article className="review-stat-pie card">
+      <div className="review-stat-pie-chart" aria-hidden="true">
+        <svg viewBox={`0 0 ${size} ${size}`} role="presentation">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            className="review-stat-pie-track"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+          {total > 0 ? (
+            <>
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                className="review-stat-pie-remembered"
+                strokeDasharray={`${rememberedLength} ${circumference - rememberedLength}`}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                className="review-stat-pie-needs"
+                strokeDasharray={`${needsLength} ${circumference - needsLength}`}
+                strokeDashoffset={-rememberedLength}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+            </>
+          ) : null}
+        </svg>
+        <strong>{total}</strong>
+      </div>
+      <div className="review-stat-pie-copy">
+        <span>{label}</span>
+        <small>{remembered} remembered · {needsReview} need review</small>
+      </div>
+    </article>
   );
 }
 

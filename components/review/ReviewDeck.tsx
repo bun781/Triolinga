@@ -165,7 +165,6 @@ export function ReviewDeck({
           {menuView === "statistics" && onResetProgress ? (
             <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
           ) : null}
-          <LearningSciencePanel />
         </div>
       );
     }
@@ -216,7 +215,6 @@ export function ReviewDeck({
           {menuView === "statistics" && onResetProgress ? (
             <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
           ) : null}
-          <LearningSciencePanel />
           {confirmResetLesson ? (
             <div className="confirm-backdrop" role="presentation">
               <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-lesson-title">
@@ -298,7 +296,6 @@ export function ReviewDeck({
         onEasy={() => reviewCurrent("easy")}
         onToggleShuffle={toggleShuffle}
       />
-      <LearningSciencePanel compact />
     </div>
   );
 }
@@ -434,7 +431,6 @@ function ReviewMenuTabs({
       <button type="button" className={active === "statistics" ? "active" : ""} onClick={() => onChange("statistics")}>
         Statistics
       </button>
-      <a className="button secondary" href="/study/imported-content">Back</a>
     </div>
   );
 }
@@ -648,26 +644,4 @@ function formatRelativeDueTime(dueAt: Date, now: Date) {
   if (hours < 24) return `in ${hours}h`;
   const days = Math.ceil(hours / 24);
   return `in ${days}d`;
-}
-
-function LearningSciencePanel({ compact = false }: { compact?: boolean }) {
-  return (
-    <section className={`learning-science${compact ? " learning-science-compact" : ""}`}>
-      <div>
-        <h2>Learning Science</h2>
-        <p className="muted">Methods used in this review session.</p>
-      </div>
-      <div className="learning-science-grid">
-        <p><strong>Spaced Repetition</strong> — difficult sentences return sooner; mastered sentences appear less often.</p>
-        <p><strong>Retrieval Practice</strong> — recall the sentence before revealing the answer.</p>
-        <p><strong>Interleaving</strong> — review mixes sentences from different lessons.</p>
-        <p><strong>Generation Effect</strong> — fill blanks or produce translations yourself.</p>
-        <p><strong>Desirable Difficulties</strong> — hints are gradually removed as memory improves.</p>
-      </div>
-      <details className="learning-science-more">
-        <summary>Learn more</summary>
-        <p className="muted">Fydor combines due cards, new cards, and occasional older cards, then adjusts timing and hints from your self-grade.</p>
-      </details>
-    </section>
-  );
 }

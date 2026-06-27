@@ -615,21 +615,100 @@ button, input, textarea, select {
   width: 100%;
 }
 
+.review-stats-overview {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+}
+
+.review-stat-pie {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+  min-height: 96px;
+  padding: 12px;
+}
+
+.review-stat-pie-chart {
+  align-items: center;
+  display: grid;
+  height: 72px;
+  justify-items: center;
+  position: relative;
+  width: 72px;
+}
+
+.review-stat-pie-chart svg {
+  display: block;
+  height: 72px;
+  width: 72px;
+}
+
+.review-stat-pie-chart strong {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  position: absolute;
+}
+
+.review-stat-pie-track,
+.review-stat-pie-remembered,
+.review-stat-pie-needs {
+  fill: none;
+  stroke-width: 10;
+}
+
+.review-stat-pie-track {
+  stroke: var(--line);
+}
+
+.review-stat-pie-remembered {
+  stroke: var(--ok);
+  stroke-linecap: round;
+}
+
+.review-stat-pie-needs {
+  stroke: var(--warn);
+  stroke-linecap: round;
+}
+
+.review-stat-pie-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.review-stat-pie-copy span {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.review-stat-pie-copy small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .review-stats-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(4, minmax(118px, 1fr));
 }
 
 .review-stat-card {
-  background: var(--surface);
+  background: var(--surface-muted);
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--ink);
   cursor: pointer;
   display: grid;
-  gap: 4px;
-  min-height: 112px;
+  gap: 3px;
+  min-height: 132px;
   padding: 12px;
   text-align: left;
 }
@@ -651,12 +730,17 @@ button, input, textarea, select {
 
 .review-stat-card small {
   color: var(--muted);
+  font-size: 12px;
   line-height: 1.35;
 }
 
 .review-stat-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
   display: grid;
   gap: 14px;
+  padding: 18px;
 }
 
 .review-stat-list-top,
@@ -3379,6 +3463,11 @@ textarea.input {
   }
 
   .review-queue-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-stats-overview,
+  .review-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
