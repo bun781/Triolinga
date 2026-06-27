@@ -171,6 +171,9 @@ button, input, textarea, select {
 .sidebar-help {
   flex: 0 0 auto;
   height: 36px;
+  left: 14px;
+  position: absolute;
+  bottom: 18px;
   width: 36px;
 }
 
@@ -259,6 +262,7 @@ button, input, textarea, select {
   color: var(--muted);
   display: grid;
   gap: 10px;
+  margin-bottom: 50px;
   margin-top: auto;
   opacity: 0;
   padding-top: 14px;
@@ -625,8 +629,111 @@ button, input, textarea, select {
   flex: 1 1 100%;
 }
 
+.review-menu-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .review-back-button {
   justify-self: start;
+}
+
+.review-quick-stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.review-quick-pie {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 118px;
+  padding: 12px;
+}
+
+.review-quick-pie-chart {
+  align-items: center;
+  display: grid;
+  height: 76px;
+  justify-items: center;
+  position: relative;
+  width: 76px;
+}
+
+.review-quick-pie-chart svg {
+  display: block;
+  height: 76px;
+  width: 76px;
+}
+
+.review-quick-pie-chart strong {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1;
+  position: absolute;
+}
+
+.review-quick-pie-track,
+.review-quick-pie-primary,
+.review-quick-pie-secondary {
+  fill: none;
+  stroke-width: 10;
+}
+
+.review-quick-pie-track {
+  stroke: var(--line);
+}
+
+.review-quick-pie-primary {
+  stroke: var(--ok);
+  stroke-linecap: round;
+}
+
+.review-quick-pie-secondary {
+  stroke: var(--warn);
+  stroke-linecap: round;
+}
+
+.review-quick-pie-attention .review-quick-pie-primary {
+  stroke: var(--warn);
+}
+
+.review-quick-pie-attention .review-quick-pie-secondary {
+  stroke: var(--accent);
+}
+
+.review-quick-pie-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.review-quick-pie-copy span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.review-quick-pie-copy strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.review-quick-pie-copy small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .review-stats-browser {
@@ -710,19 +817,20 @@ button, input, textarea, select {
 .review-stats-overview {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
 }
 
 .review-stat-pie {
-  align-items: center;
+  align-items: start;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(244, 242, 237, 0.96));
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(28, 24, 20, 0.06);
   display: grid;
   gap: 12px;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 136px;
+  min-width: 0;
   padding: 14px;
 }
 
@@ -817,6 +925,11 @@ button, input, textarea, select {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.review-stat-pie-copy strong {
+  overflow-wrap: anywhere;
 }
 
 .review-stat-pie-meta {
@@ -829,7 +942,7 @@ button, input, textarea, select {
 .review-stats-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .review-stat-card {
@@ -3611,6 +3724,10 @@ textarea.input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .review-quick-stats {
+    grid-template-columns: 1fr;
+  }
+
   .review-stats-summary-chips {
     justify-content: flex-start;
   }
@@ -3633,7 +3750,7 @@ textarea.input {
 
   .review-stats-overview,
   .review-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .mode-tabs,

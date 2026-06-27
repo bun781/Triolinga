@@ -153,28 +153,35 @@ export function ReviewDeck({
         <div className="review-shell">
           <ReviewStartHeader summary={summary} />
           {menuView === "statistics" && onResetProgress ? (
-            <ReviewStatsBrowser
-              lessons={fullLessons}
-              lessonTitleById={lessonTitleById}
-              sentences={sentences}
-              onReset={handleReset}
-            />
-          ) : null}
-          <section className="review-start-panel review-start-panel-controls">
-            <ReviewLessonSelect
-              lessons={lessonOptions}
-              selectedLessonIds={selectedLessonIds}
-              sentenceCountByLesson={lessonSentenceCounts}
-              totalSentenceCount={totalSentenceCount}
-              onChange={onSelectedLessonIdsChange}
-            />
-            <ReviewMenuTabs
-              active={menuView}
-              onChange={setMenuView}
-              onHelp={() => replayGuidedTour(createTourScope("/review", menuView))}
-            />
-            <p className="muted">Select at least one lesson to build a review queue.</p>
-          </section>
+            <>
+              <button className="button secondary review-back-button" type="button" onClick={() => setMenuView("start")}>
+                Back to review setup
+              </button>
+              <ReviewStatsBrowser
+                lessons={fullLessons}
+                lessonTitleById={lessonTitleById}
+                sentences={sentences}
+                onReset={handleReset}
+              />
+            </>
+          ) : (
+            <section className="review-start-panel review-start-panel-controls">
+              <ReviewLessonSelect
+                lessons={lessonOptions}
+                selectedLessonIds={selectedLessonIds}
+                sentenceCountByLesson={lessonSentenceCounts}
+                totalSentenceCount={totalSentenceCount}
+                onChange={onSelectedLessonIdsChange}
+              />
+              <ReviewMenuActions
+                statsDisabled={!onResetProgress}
+                onShowStats={() => setMenuView("statistics")}
+                onHelp={() => replayGuidedTour(createTourScope("/review", "start"))}
+              />
+              <ReviewQuickStats summary={summary} dashboard={queueDashboard} />
+              <p className="muted">Select at least one lesson to build a review queue.</p>
+            </section>
+          )}
         </div>
       );
     }
@@ -193,47 +200,50 @@ export function ReviewDeck({
         <div className="review-shell">
           <ReviewStartHeader summary={summary} />
           {menuView === "statistics" && onResetProgress ? (
-            <ReviewStatsBrowser
-              lessons={fullLessons}
-              lessonTitleById={lessonTitleById}
-              sentences={sentences}
-              onReset={handleReset}
-            />
-          ) : null}
-          <section className="review-start-panel review-start-panel-controls">
-            <ReviewLessonSelect
-              lessons={lessonOptions}
-              selectedLessonIds={selectedLessonIds}
-              sentenceCountByLesson={lessonSentenceCounts}
-              totalSentenceCount={totalSentenceCount}
-              onChange={onSelectedLessonIdsChange}
-            />
-            <ReviewMenuTabs
-              active={menuView}
-              onChange={setMenuView}
-              onHelp={() => replayGuidedTour(createTourScope("/review", menuView))}
-            />
-            {menuView === "start" ? (
-              <>
-                <ReviewQueueDashboard dashboard={queueDashboard} />
-                <div className="review-start-actions">
-                  <button className="button" type="button" data-tour="review-start-mixed" onClick={() => startReview("mixed")}>
-                    Start Mixed Review
-                  </button>
-                  <div className="review-filter-row" aria-label="Review filters">
-                    <button className="button secondary" type="button" data-tour="review-start-due" onClick={() => startReview("due")} disabled={queueDashboard.due === 0}>Due only</button>
-                    <button className="button secondary" type="button" data-tour="review-start-new" onClick={() => startReview("new")} disabled={queueDashboard.new === 0}>New only</button>
-                    <button className="button secondary" type="button" onClick={() => startReview("all")}>All selected</button>
-                    {onResetProgress && selectedLessonIds.length ? (
-                      <button className="button secondary" type="button" data-tour="review-reset-progress" onClick={() => setConfirmResetLesson(true)}>
-                        <RotateCcw size={16} /> Reset Progress
-                      </button>
-                    ) : null}
-                  </div>
+            <>
+              <button className="button secondary review-back-button" type="button" onClick={() => setMenuView("start")}>
+                Back to review setup
+              </button>
+              <ReviewStatsBrowser
+                lessons={fullLessons}
+                lessonTitleById={lessonTitleById}
+                sentences={sentences}
+                onReset={handleReset}
+              />
+            </>
+          ) : (
+            <section className="review-start-panel review-start-panel-controls">
+              <ReviewLessonSelect
+                lessons={lessonOptions}
+                selectedLessonIds={selectedLessonIds}
+                sentenceCountByLesson={lessonSentenceCounts}
+                totalSentenceCount={totalSentenceCount}
+                onChange={onSelectedLessonIdsChange}
+              />
+              <ReviewMenuActions
+                statsDisabled={!onResetProgress}
+                onShowStats={() => setMenuView("statistics")}
+                onHelp={() => replayGuidedTour(createTourScope("/review", "start"))}
+              />
+              <ReviewQuickStats summary={summary} dashboard={queueDashboard} />
+              <ReviewQueueDashboard dashboard={queueDashboard} />
+              <div className="review-start-actions">
+                <button className="button" type="button" data-tour="review-start-mixed" onClick={() => startReview("mixed")}>
+                  Start Mixed Review
+                </button>
+                <div className="review-filter-row" aria-label="Review filters">
+                  <button className="button secondary" type="button" data-tour="review-start-due" onClick={() => startReview("due")} disabled={queueDashboard.due === 0}>Due only</button>
+                  <button className="button secondary" type="button" data-tour="review-start-new" onClick={() => startReview("new")} disabled={queueDashboard.new === 0}>New only</button>
+                  <button className="button secondary" type="button" onClick={() => startReview("all")}>All selected</button>
+                  {onResetProgress && selectedLessonIds.length ? (
+                    <button className="button secondary" type="button" data-tour="review-reset-progress" onClick={() => setConfirmResetLesson(true)}>
+                      <RotateCcw size={16} /> Reset Progress
+                    </button>
+                  ) : null}
                 </div>
-              </>
-            ) : null}
-          </section>
+              </div>
+            </section>
+          )}
           {confirmResetLesson ? (
             <div className="confirm-backdrop" role="presentation">
               <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-lesson-title">
@@ -435,27 +445,130 @@ function ReviewSessionComplete({
   );
 }
 
-function ReviewMenuTabs({
-  active,
-  onChange,
+function ReviewMenuActions({
+  statsDisabled,
+  onShowStats,
   onHelp
 }: {
-  active: "start" | "statistics";
-  onChange: (view: "start" | "statistics") => void;
+  statsDisabled: boolean;
+  onShowStats: () => void;
   onHelp: () => void;
 }) {
   return (
-    <div className="mode-tabs review-menu-tabs" role="tablist" aria-label="Review menu" data-tour="review-start-tabs">
-      <button type="button" className={active === "start" ? "active" : ""} data-tour="review-start-tab" onClick={() => onChange("start")}>
-        Start
-      </button>
-      <button type="button" className={active === "statistics" ? "active" : ""} data-tour="review-statistics-tab" onClick={() => onChange("statistics")}>
-        Statistics
+    <div className="review-menu-actions" data-tour="review-start-tabs">
+      <button type="button" className="button secondary" data-tour="review-statistics-tab" disabled={statsDisabled} onClick={onShowStats}>
+        View all stats
       </button>
       <button type="button" className="icon-button" aria-label="Open review guide" onClick={onHelp}>
         <HelpCircle size={17} />
       </button>
     </div>
+  );
+}
+
+function ReviewQuickStats({
+  dashboard,
+  summary
+}: {
+  dashboard: ReviewQueueDashboardData;
+  summary: ReturnType<typeof useReviewDeck>["summary"];
+}) {
+  const reviewed = Math.max(0, summary.total - summary.unknown);
+
+  return (
+    <section className="review-quick-stats" aria-label="Review statistics preview">
+      <QuickPieChart
+        label="Review balance"
+        primary={summary.remembered}
+        secondary={dashboard.due}
+        primaryLabel="remembered"
+        secondaryLabel="due now"
+      />
+      <QuickPieChart
+        label="Queue focus"
+        primary={dashboard.due}
+        secondary={dashboard.new}
+        primaryLabel="due"
+        secondaryLabel="new"
+        tone="attention"
+      />
+      <QuickPieChart
+        label="Coverage"
+        primary={reviewed}
+        secondary={summary.unknown}
+        primaryLabel="reviewed"
+        secondaryLabel="new"
+      />
+    </section>
+  );
+}
+
+function QuickPieChart({
+  label,
+  primary,
+  primaryLabel,
+  secondary,
+  secondaryLabel,
+  tone = "balanced"
+}: {
+  label: string;
+  primary: number;
+  primaryLabel: string;
+  secondary: number;
+  secondaryLabel: string;
+  tone?: "balanced" | "attention";
+}) {
+  const total = primary + secondary;
+  const radius = 23;
+  const size = 72;
+  const circumference = 2 * Math.PI * radius;
+  const primaryShare = total > 0 ? primary / total : 0;
+  const secondaryShare = total > 0 ? secondary / total : 0;
+  const primaryLength = circumference * primaryShare;
+  const secondaryLength = circumference * secondaryShare;
+  const percent = total > 0 ? Math.round(primaryShare * 100) : 0;
+
+  return (
+    <article className={`review-quick-pie review-quick-pie-${tone}`}>
+      <div className="review-quick-pie-chart" aria-hidden="true">
+        <svg viewBox={`0 0 ${size} ${size}`} role="presentation">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            className="review-quick-pie-track"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+          {total > 0 ? (
+            <>
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                className="review-quick-pie-primary"
+                strokeDasharray={`${primaryLength} ${circumference - primaryLength}`}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                className="review-quick-pie-secondary"
+                strokeDasharray={`${secondaryLength} ${circumference - secondaryLength}`}
+                strokeDashoffset={-primaryLength}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+            </>
+          ) : null}
+        </svg>
+        <strong>{percent}%</strong>
+      </div>
+      <div className="review-quick-pie-copy">
+        <span>{label}</span>
+        <strong>{primary} {primaryLabel}</strong>
+        <small>{secondary} {secondaryLabel}</small>
+      </div>
+    </article>
   );
 }
 

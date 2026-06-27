@@ -10,11 +10,20 @@ use tauri::State;
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ReviewResetScope {
-    Lesson { lesson_id: String },
-    Sentence { sentence_id: String },
+    Lesson {
+        #[serde(rename = "lessonId")]
+        lesson_id: String,
+    },
+    Sentence {
+        #[serde(rename = "sentenceId")]
+        sentence_id: String,
+    },
     Item {
+        #[serde(rename = "itemType")]
         item_type: String,
+        #[serde(rename = "canonicalKey")]
         canonical_key: String,
+        #[serde(rename = "lessonId")]
         lesson_id: Option<String>,
     },
 }
@@ -375,4 +384,52 @@ fn next_recall_mode(current: &str, grade: &str) -> String {
         _ => (index + 1).min((modes.len() - 1) as i64),
     };
     modes[next_index as usize].to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ReviewResetScope;
+
+    #[test]
+    fn deserializes_lesson_reset_scope_from_frontend_payload() {
+        let scope: ReviewResetScope =
+            serde_json::from_str(r#"{"type":"lesson","lessonId":"lesson-1"}"#).unwrap();
+
+        match scope {
+            ReviewResetScope::Lesson { lesson_id } => assert_eq!(lesson_id, "lesson-1"),
+            _ => panic!("expected lesson reset scope"),
+        }
+    }
+
+    #[test]
+    fn deserializes_sentence_reset_scope_from_frontend_payload() {
+        let scope: ReviewResetScope =
+            serde_json::from_str(r#"{"type":"sentence","sentenceId":"sentence-1"}"#).unwrap();
+
+        match scope {
+            ReviewResetScope::Sentence { sentence_id } => assert_eq!(sentence_id, "sentence-1"),
+            _ => panic!("expected sentence reset scope"),
+        }
+    }
+
+    #[test]
+    fn deserializes_item_reset_scope_from_frontend_payload() {
+        let scope: ReviewResetScope = serde_json::from_str(
+            r#"{"type":"item","itemType":"word","canonicalKey":"ko:hello","lessonId":"lesson-1"}"#,
+        )
+        .unwrap();
+
+        match scope {
+            ReviewResetScope::Item {
+                item_type,
+                canonical_key,
+                lesson_id,
+            } => {
+                assert_eq!(item_type, "word");
+                assert_eq!(canonical_key, "ko:hello");
+                assert_eq!(lesson_id.as_deref(), Some("lesson-1"));
+            }
+            _ => panic!("expected item reset scope"),
+        }
+    }
 }
