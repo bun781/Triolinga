@@ -46,6 +46,15 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
   const stats = useMemo(() => buildReviewStats(sentences, lessons, lessonTitleById), [lessonTitleById, lessons, sentences]);
   const active = stats[activeKey];
   const overviewTotals = useMemo(() => summarizeOverviewTotals(stats), [stats]);
+  const overallTotal = overviewTotals.remembered + overviewTotals.needsReview;
+  const needsReviewShare = overallTotal > 0 ? overviewTotals.needsReview / overallTotal : 0;
+  const urgencyLabel = overviewTotals.needsReview === 0
+    ? "All clear"
+    : needsReviewShare >= 0.5
+      ? "High urgency"
+      : needsReviewShare >= 0.25
+        ? "Active review"
+        : "Light review";
   const overviewCharts = useMemo(() => [
     {
       label: "Sentences",
@@ -91,7 +100,7 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
           <p className="muted">{active.detail}</p>
         </div>
         <div className="review-stats-summary-chips">
-          <span className="pill">{filtered.length} items</span>
+          <span className="pill pill-accent">{urgencyLabel}</span>
           <span className="pill pill-accent">{overviewTotals.remembered} remembered</span>
           <span className="pill">{overviewTotals.needsReview} need review</span>
         </div>
@@ -103,13 +112,13 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
           remembered={overviewTotals.remembered}
           needsReview={overviewTotals.needsReview}
           variant="hero"
-          detail="Use the dashboard to keep momentum moving toward more remembered cards and fewer overdue items."
+          detail="Keep the queue moving so overdue items do not quietly stack up."
         />
         <div className="review-stats-hero-copy">
           <span className="page-state-eyebrow">Keep learning</span>
           <h3>{overviewTotals.remembered} remembered, {overviewTotals.needsReview} still need review</h3>
           <p className="muted">
-            The pie charts below break the deck into smaller groups so you can see where the next win is.
+            The charts below break the deck into smaller groups so the next urgent win is obvious at a glance.
           </p>
           <div className="review-stats-hero-metrics">
             <div>
@@ -121,9 +130,15 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
               <span>sentences due</span>
             </div>
             <div>
-              <strong>{overviewCharts.length}</strong>
-              <span>categories</span>
+              <strong>{filtered.length}</strong>
+              <span>items in view</span>
             </div>
+          </div>
+          <div className="review-stats-hero-cta">
+            <span className={`pill ${overviewTotals.needsReview > 0 ? "review-state-forgotten" : "review-state-remembered"}`}>
+              {overviewTotals.needsReview > 0 ? `${overviewTotals.needsReview} cards need attention` : "Nothing urgent"}
+            </span>
+            <span className="pill">{overallTotal} tracked items</span>
           </div>
         </div>
       </div>
@@ -135,6 +150,7 @@ export function ReviewStatsBrowser({ lessons, lessonTitleById, sentences, onRese
             label={chart.label}
             remembered={chart.remembered}
             needsReview={chart.needsReview}
+            detail={chart.needsReview > chart.remembered ? "More cards need review than are remembered." : "Healthy balance with more remembered cards."}
           />
         ))}
       </div>
@@ -352,7 +368,9 @@ function StatPieCard({
       </div>
       <div className="review-stat-pie-copy">
         <span>{label}</span>
+        <strong>{rememberedPercent}% remembered</strong>
         <small>{remembered} remembered · {needsReview} need review</small>
+        {detail ? <small>{detail}</small> : null}
       </div>
     </article>
   );

@@ -151,20 +151,24 @@ export function ReviewDeck({
       return (
         <div className="review-shell">
           <ReviewStartHeader summary={summary} />
-          <section className="review-start-panel">
-            <ReviewLessonSelect
-              lessons={lessonOptions}
-              selectedLessonIds={selectedLessonIds}
-              sentenceCountByLesson={lessonSentenceCounts}
-              totalSentenceCount={totalSentenceCount}
-              onChange={onSelectedLessonIdsChange}
-            />
-            <ReviewMenuTabs active={menuView} onChange={setMenuView} />
-            <p className="muted">Select at least one lesson to build a review queue.</p>
+          <section className="review-start-panel review-start-panel-split">
+            <div className="review-start-panel-primary">
+              <ReviewLessonSelect
+                lessons={lessonOptions}
+                selectedLessonIds={selectedLessonIds}
+                sentenceCountByLesson={lessonSentenceCounts}
+                totalSentenceCount={totalSentenceCount}
+                onChange={onSelectedLessonIdsChange}
+              />
+              <ReviewMenuTabs active={menuView} onChange={setMenuView} />
+              <p className="muted">Select at least one lesson to build a review queue.</p>
+            </div>
+            <div className="review-start-panel-secondary">
+              {menuView === "statistics" && onResetProgress ? (
+                <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
+              ) : null}
+            </div>
           </section>
-          {menuView === "statistics" && onResetProgress ? (
-            <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
-          ) : null}
         </div>
       );
     }
@@ -182,18 +186,17 @@ export function ReviewDeck({
       return (
         <div className="review-shell">
           <ReviewStartHeader summary={summary} />
-          <section className="review-start-panel">
-            <ReviewLessonSelect
-              lessons={lessonOptions}
-              selectedLessonIds={selectedLessonIds}
-              sentenceCountByLesson={lessonSentenceCounts}
-              totalSentenceCount={totalSentenceCount}
-              onChange={onSelectedLessonIdsChange}
-            />
-            <ReviewMenuTabs active={menuView} onChange={setMenuView} />
-            {menuView === "start" ? (
-              <>
-                <ReviewQueueDashboard dashboard={queueDashboard} />
+          <section className="review-start-panel review-start-panel-split">
+            <div className="review-start-panel-primary">
+              <ReviewLessonSelect
+                lessons={lessonOptions}
+                selectedLessonIds={selectedLessonIds}
+                sentenceCountByLesson={lessonSentenceCounts}
+                totalSentenceCount={totalSentenceCount}
+                onChange={onSelectedLessonIdsChange}
+              />
+              <ReviewMenuTabs active={menuView} onChange={setMenuView} />
+              {menuView === "start" ? (
                 <div className="review-start-actions">
                   <button className="button" type="button" onClick={() => startReview("mixed")}>
                     Start Mixed Review
@@ -209,12 +212,16 @@ export function ReviewDeck({
                     ) : null}
                   </div>
                 </div>
-              </>
-            ) : null}
+              ) : null}
+            </div>
+            <div className="review-start-panel-secondary">
+              {menuView === "start" ? (
+                <ReviewQueueDashboard dashboard={queueDashboard} />
+              ) : onResetProgress ? (
+                <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
+              ) : null}
+            </div>
           </section>
-          {menuView === "statistics" && onResetProgress ? (
-            <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
-          ) : null}
           {confirmResetLesson ? (
             <div className="confirm-backdrop" role="presentation">
               <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reset-lesson-title">
