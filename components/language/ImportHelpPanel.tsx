@@ -4,6 +4,7 @@ import { Check, Copy, HelpCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { importGuideSections, importPromptTemplates } from "@/lib/language/importResources";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { createTourScope, replayGuidedTour } from "@/components/system/GuidedTour";
 
 type HelpTab = "guide" | "prompts";
 
@@ -59,17 +60,27 @@ export function ImportHelpPanel() {
             </div>
           </div>
 
-          <div className="mode-tabs import-help-tabs" role="tablist" aria-label="Lesson import help">
-            <button className={tab === "guide" ? "active" : ""} type="button" onClick={() => setTab("guide")}>
-              Guide
-            </button>
-            <button className={tab === "prompts" ? "active" : ""} type="button" data-tour="import-prompts" onClick={() => setTab("prompts")}>
-              Prompt templates
-            </button>
-          </div>
+      <div className="mode-tabs import-help-tabs" role="tablist" aria-label="Lesson import help">
+        <button className={tab === "guide" ? "active" : ""} type="button" onClick={() => setTab("guide")}>
+          Guide
+        </button>
+        <button className={tab === "prompts" ? "active" : ""} type="button" data-tour="import-prompts" onClick={() => setTab("prompts")}>
+          Prompt templates
+        </button>
+        <Tooltip content={tab === "guide" ? "Open the guide walkthrough." : "Open the prompt template walkthrough."}>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Open import help walkthrough"
+            onClick={() => replayGuidedTour(createTourScope("/lessons/manage", tab === "guide" ? "help-guide" : "help-prompts"))}
+          >
+            <HelpCircle size={17} />
+          </button>
+        </Tooltip>
+      </div>
 
           {tab === "guide" ? (
-            <div className="stack">
+            <div className="stack" data-tour="import-guide-panel">
               {importGuideSections.map((section) => (
                 <article className="help-section" key={section.title}>
                   <h3>{section.title}</h3>
@@ -96,7 +107,7 @@ export function ImportHelpPanel() {
               ))}
             </div>
           ) : (
-            <div className="stack">
+            <div className="stack" data-tour="import-prompts-panel">
               {importPromptTemplates.map((template) => (
                 <article className="help-section stack" key={template.id}>
                   <div className="row">

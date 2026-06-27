@@ -140,7 +140,7 @@ button, input, textarea, select {
   border-bottom: 1px solid transparent;
   display: flex;
   gap: 10px;
-  justify-content: center;
+  justify-content: space-between;
   min-height: 72px;
   padding-bottom: 12px;
   padding-top: 46px;
@@ -166,6 +166,12 @@ button, input, textarea, select {
 .sidebar-toggle[aria-pressed="true"] {
   background: var(--surface-muted);
   border-color: var(--ink);
+}
+
+.sidebar-help {
+  flex: 0 0 auto;
+  height: 36px;
+  width: 36px;
 }
 
 .sidebar nav {
@@ -271,11 +277,6 @@ button, input, textarea, select {
 .sidebar-note p {
   font-size: 12px;
   line-height: 1.5;
-}
-
-.sidebar-replay {
-  justify-content: center;
-  width: 100%;
 }
 
 .main {
@@ -534,6 +535,11 @@ button, input, textarea, select {
 
 .review-start-panel-secondary {
   align-content: start;
+}
+
+.review-start-panel-controls {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .review-start-actions {
@@ -1574,6 +1580,13 @@ textarea.input {
 
 .import-help-tabs {
   margin-bottom: 0;
+}
+
+.import-help-tabs .icon-button {
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  width: 34px;
 }
 
 .help-section {

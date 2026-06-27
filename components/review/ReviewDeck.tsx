@@ -152,32 +152,28 @@ export function ReviewDeck({
       return (
         <div className="review-shell">
           <ReviewStartHeader summary={summary} />
-          <section className="review-start-panel review-start-panel-split">
-            <div className="review-start-panel-primary">
-              <ReviewLessonSelect
-                lessons={lessonOptions}
-                selectedLessonIds={selectedLessonIds}
-                sentenceCountByLesson={lessonSentenceCounts}
-                totalSentenceCount={totalSentenceCount}
-                onChange={onSelectedLessonIdsChange}
-              />
-              <ReviewMenuTabs
-                active={menuView}
-                onChange={setMenuView}
-                onHelp={() => replayGuidedTour(createTourScope("/review", menuView))}
-              />
-              <p className="muted">Select at least one lesson to build a review queue.</p>
-            </div>
-            <div className="review-start-panel-secondary">
-              {menuView === "statistics" && onResetProgress ? (
-                <ReviewStatsBrowser
-                  lessons={fullLessons}
-                  lessonTitleById={lessonTitleById}
-                  sentences={sentences}
-                  onReset={handleReset}
-                />
-              ) : null}
-            </div>
+          {menuView === "statistics" && onResetProgress ? (
+            <ReviewStatsBrowser
+              lessons={fullLessons}
+              lessonTitleById={lessonTitleById}
+              sentences={sentences}
+              onReset={handleReset}
+            />
+          ) : null}
+          <section className="review-start-panel review-start-panel-controls">
+            <ReviewLessonSelect
+              lessons={lessonOptions}
+              selectedLessonIds={selectedLessonIds}
+              sentenceCountByLesson={lessonSentenceCounts}
+              totalSentenceCount={totalSentenceCount}
+              onChange={onSelectedLessonIdsChange}
+            />
+            <ReviewMenuTabs
+              active={menuView}
+              onChange={setMenuView}
+              onHelp={() => replayGuidedTour(createTourScope("/review", menuView))}
+            />
+            <p className="muted">Select at least one lesson to build a review queue.</p>
           </section>
         </div>
       );
@@ -196,21 +192,30 @@ export function ReviewDeck({
       return (
         <div className="review-shell">
           <ReviewStartHeader summary={summary} />
-          <section className="review-start-panel review-start-panel-split">
-            <div className="review-start-panel-primary">
-              <ReviewLessonSelect
-                lessons={lessonOptions}
-                selectedLessonIds={selectedLessonIds}
-                sentenceCountByLesson={lessonSentenceCounts}
-                totalSentenceCount={totalSentenceCount}
-                onChange={onSelectedLessonIdsChange}
-              />
-              <ReviewMenuTabs
-                active={menuView}
-                onChange={setMenuView}
-                onHelp={() => replayGuidedTour(createTourScope("/review", menuView))}
-              />
-              {menuView === "start" ? (
+          {menuView === "statistics" && onResetProgress ? (
+            <ReviewStatsBrowser
+              lessons={fullLessons}
+              lessonTitleById={lessonTitleById}
+              sentences={sentences}
+              onReset={handleReset}
+            />
+          ) : null}
+          <section className="review-start-panel review-start-panel-controls">
+            <ReviewLessonSelect
+              lessons={lessonOptions}
+              selectedLessonIds={selectedLessonIds}
+              sentenceCountByLesson={lessonSentenceCounts}
+              totalSentenceCount={totalSentenceCount}
+              onChange={onSelectedLessonIdsChange}
+            />
+            <ReviewMenuTabs
+              active={menuView}
+              onChange={setMenuView}
+              onHelp={() => replayGuidedTour(createTourScope("/review", menuView))}
+            />
+            {menuView === "start" ? (
+              <>
+                <ReviewQueueDashboard dashboard={queueDashboard} />
                 <div className="review-start-actions">
                   <button className="button" type="button" data-tour="review-start-mixed" onClick={() => startReview("mixed")}>
                     Start Mixed Review
@@ -226,15 +231,8 @@ export function ReviewDeck({
                     ) : null}
                   </div>
                 </div>
-              ) : null}
-            </div>
-            <div className="review-start-panel-secondary">
-              {menuView === "start" ? (
-                <ReviewQueueDashboard dashboard={queueDashboard} />
-              ) : onResetProgress ? (
-                <ReviewStatsBrowser lessons={fullLessons} lessonTitleById={lessonTitleById} sentences={sentences} onReset={handleReset} />
-              ) : null}
-            </div>
+              </>
+            ) : null}
           </section>
           {confirmResetLesson ? (
             <div className="confirm-backdrop" role="presentation">

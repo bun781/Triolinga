@@ -83,6 +83,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu size={19} />
           </button>
+          <button
+            type="button"
+            className="icon-button sidebar-help"
+            aria-label="Open page guide"
+            onClick={() => replayGuidedTour()}
+          >
+            <HelpCircle size={17} />
+          </button>
         </div>
 
         <nav aria-label="Primary navigation">
@@ -108,10 +116,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-note" aria-label="Project note">
           <span className="pill pill-accent">Free for the people</span>
           <p>Open access by design. No paywall, no subscriptions.</p>
-          <button type="button" className="button secondary sidebar-replay" aria-label="Open page guide" onClick={() => replayGuidedTour()}>
-            <HelpCircle size={18} />
-            Replay tutorial
-          </button>
         </div>
       </aside>
       <main className="main">{children}</main>

@@ -139,6 +139,60 @@ const tourCatalog: Record<string, TourStep[]> = {
       primaryLabel: "Finish"
     }
   ],
+  "/lessons/manage::help-guide": [
+    {
+      route: "/lessons/manage",
+      section: "Import Help",
+      title: "Read the lesson guide first",
+      description: "The guide explains the lesson schema, required fields, and good examples before you paste AI output into the editor.",
+      details: [
+        "Use it when you are unsure what a lesson field should look like.",
+        "The examples show the structure Fydor expects."
+      ],
+      targetSelectors: ['[data-tour="import-guide-panel"]'],
+      placement: "right"
+    },
+    {
+      route: "/lessons/manage",
+      section: "Import Help",
+      title: "Use prompt templates when you want AI help",
+      description: "Prompt templates are the faster path if you want another model to draft the lesson for you.",
+      details: [
+        "The templates are designed to be copied into an AI tool and customized.",
+        "Switch to the prompt tab when you want the assistant to do the drafting."
+      ],
+      targetSelectors: ['[data-tour="import-prompts"]'],
+      placement: "right",
+      primaryLabel: "Finish"
+    }
+  ],
+  "/lessons/manage::help-prompts": [
+    {
+      route: "/lessons/manage",
+      section: "Import Help",
+      title: "Copy a template and customize it",
+      description: "Prompt templates are ready-made instructions for lesson generation and cleanup.",
+      details: [
+        "Use Copy to move a template into your clipboard.",
+        "Replace the language, topic, and difficulty to match your lesson."
+      ],
+      targetSelectors: ['[data-tour="import-prompts-panel"]'],
+      placement: "right"
+    },
+    {
+      route: "/lessons/manage",
+      section: "Import Help",
+      title: "Return to the guide if you need schema help",
+      description: "The guide tab is better when you need to check fields, examples, or validation rules.",
+      details: [
+        "Go back to Guide when you need a schema refresher.",
+        "Use Check in the editor once the JSON is ready."
+      ],
+      targetSelectors: ['[data-tour="import-guide"]'],
+      placement: "right",
+      primaryLabel: "Finish"
+    }
+  ],
   "/review::start": [
     {
       route: "/review",
