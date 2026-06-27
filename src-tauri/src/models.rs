@@ -4,9 +4,13 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonWordInput {
     pub surface: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub lemma: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub meaning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
 }
 
@@ -14,8 +18,11 @@ pub struct LessonWordInput {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonGrammarInput {
     pub pattern: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub surface: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub meaning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
 }
 
@@ -23,11 +30,15 @@ pub struct LessonGrammarInput {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonChunkInput {
     pub surface: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub meaning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<String>,
-    #[serde(rename = "type")]
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub item_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
 }
 
@@ -35,9 +46,13 @@ pub struct LessonChunkInput {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessonSentenceInput {
     pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub translation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub words: Option<Vec<LessonWordInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub grammar: Option<Vec<LessonGrammarInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub chunks: Option<Vec<LessonChunkInput>>,
 }
 
@@ -47,9 +62,13 @@ pub struct LessonImportInput {
     pub language: String,
     pub base_language: String,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     pub sentences: Vec<LessonSentenceInput>,
 }

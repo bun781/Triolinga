@@ -123,7 +123,7 @@ export function parseFydorPack(source: string): FydorPackValidation {
   const seenLessonKeys = new Set<string>();
 
   for (const [index, rawLesson] of packResult.data.lessons.entries()) {
-    const result = lessonImportSchema.safeParse(rawLesson);
+    const result = lessonImportSchema.safeParse(stripNulls(rawLesson));
     const title = getRawTitle(rawLesson, `Lesson ${index + 1}`);
     if (!result.success) {
       lessonErrors.push({
@@ -301,6 +301,20 @@ function emptyToUndefined(value: string | undefined): string | undefined {
 
 function uniqueTags(tags: string[] | undefined): string[] {
   return Array.from(new Set((tags ?? []).map((tag) => tag.trim()).filter(Boolean)));
+}
+
+function stripNulls(value: unknown): unknown {
+  if (value === null) return undefined;
+  if (Array.isArray(value)) return value.map(stripNulls);
+  if (typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const stripped = stripNulls(v);
+      if (stripped !== undefined) result[k] = stripped;
+    }
+    return result;
+  }
+  return value;
 }
 
 function sharedValue(values: Array<string | undefined>): string | undefined {
