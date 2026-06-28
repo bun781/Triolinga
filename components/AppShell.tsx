@@ -5,6 +5,7 @@ import {
   Brain,
   Boxes,
   ClipboardList,
+  Info,
   HelpCircle,
   Layers3,
   Library,
@@ -51,7 +52,8 @@ const navSections: Array<{
   {
     label: "Reference",
     links: [
-      { href: "/learning-science", label: "Learning Science", icon: Brain }
+      { href: "/learning-science", label: "Learning Science", icon: Brain },
+      { href: "/about" as Route<string>, label: "About Us", icon: Info }
     ]
   }
 ];
